@@ -1,0 +1,48 @@
+# Archivos temporales
+*~
+*.swp
+*.tmp
+*.bak
+*.cache
+
+# Archivos de compilación
+*.o
+*.out
+*.exe
+
+# Dependencias y librerías
+node_modules/
+vendor/
+bower_components/
+*.jar
+*.war
+*.ear
+*.pyc
+*.class
+
+# Archivos de logs
+logs/
+log/
+*.log
+*.gz
+
+# Archivos de configuración
+*.env
+*.env.local
+*.env.*.local
+.env.local.php
+.env.php
+.env.production
+.env.test
+.env.development
+
+# Archivos de caché
+cache/
+cached/
+*.cache
+!src/App/Kernel.php
+!var/cache/.gitkeep
+
+# Otros
+.DS_Store
+Thumbs.db
