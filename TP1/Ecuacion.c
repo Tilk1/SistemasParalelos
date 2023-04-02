@@ -15,11 +15,22 @@ int main(int argc, char *argv[]){
     double *A,*B,*C,*R;
     int *D;
     double time,tick;
-    int i;
+    int i,N;
+
+    //Verificar parametro 
+    if ((argc != 2)){
+        printf("El N debe ser: 512,1024,2048,4096\n");
+        exit(1);
+    }
+    N = atoi(argv[1]);
+    if((N < 511) || (N > 4097) || (((N % 2)!=0))){
+        printf("El N debe ser: 512,1024,2048,4096\n");
+        exit(1);
+    }
 
     tick = dwalltime();
 
-
+    printf("hello");
 
     time = dwalltime() - tick;
     printf("Tiempo requerido solucion: %f\n",time);
