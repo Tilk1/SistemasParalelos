@@ -9,6 +9,7 @@
 *.o
 *.out
 *.exe
+*.json
 
 # Dependencias y librerías
 node_modules/
