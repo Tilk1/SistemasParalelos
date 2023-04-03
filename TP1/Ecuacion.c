@@ -14,10 +14,12 @@ double dwalltime(){
 int main(int argc, char *argv[]){
     double *A,*B,*C,*R;
     int *D;
-    double timeBloques,tick,minA,maxB,minB;
+    double timeBloques,tick,maxB,minB;
     int i,j,k,l,N,tam_bloque=4;
     double maxA = -INFINITY;
     double block_maxA = -INFINITY;
+    double minA = +INFINITY;
+    double block_minA = +INFINITY;
 
     //Verificar parametro 
     if ((argc != 2)){
@@ -39,7 +41,8 @@ int main(int argc, char *argv[]){
     //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j]=i+j; //Ordenada por Filas
+            if(i==4 & j==12) A[i*N+j]=-2;
+            else A[i*N+j]=i+j; //Ordenada por Filas
             B[j*N+i]=1; //Ordenada por Columnas
             C[i*N+j]=1; //Ordenada Por Filas
             D[j*N+i]=rand() % 40 + 1; //Ordenada por Columnas
@@ -55,6 +58,7 @@ int main(int argc, char *argv[]){
     //EMPIEZA A CONTAR EL TIEMPO
     tick = dwalltime();
 
+    //Calcular maximo de A
     for(i=0; i < N ; i += tam_bloque){
         for(j=0; j < N ; j += tam_bloque){
             block_maxA = A[i*N+j];
@@ -71,8 +75,25 @@ int main(int argc, char *argv[]){
         }
     }
 
+    //Calcular minimo de A
+    for(i=0; i < N ; i += tam_bloque){
+        for(j=0; j < N ; j += tam_bloque){
+            block_minA = A[i*N+j];
+            for(k = i; k < i + tam_bloque; k++){
+                for(l = j; l < j + tam_bloque; l++){
+                    if(A[k*N+l] < block_minA){
+                        block_minA = A[k*N+l];
+                    }
+                }
+            }
+            if(block_minA < minA){
+                minA = block_minA;
+            }
+        }
+    }
+
     timeBloques = dwalltime() - tick;
-    printf("Tiempo requerido solucion por bloques: %f y el max es: %f\n",timeBloques,maxA);
+    printf("Tiempo requerido solucion por bloques: %f y el max de A es: %f, el min de A es: %f\n",timeBloques,maxA,minA);
 
     free(A);
     free(B);
