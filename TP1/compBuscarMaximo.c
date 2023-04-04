@@ -38,7 +38,7 @@ int main(int argc, char *argv[]){
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             A[i*N+j]=i+j;
-            B[i*N+j]=i*5;
+            B[i*N+j]=i*j;
         }
     }
     
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]){
                 maxA=A[i*N+j];
             }
             if(B[i*N+j] > maxB){
-                maxB=A[i*N+j];
+                maxB=B[i*N+j];
             }
         }
     }
