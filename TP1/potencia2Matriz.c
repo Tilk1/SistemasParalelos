@@ -16,7 +16,6 @@ int main(int argc, char *argv[]){
     int *A,*B;
     double timeMult,timePow,tick;
     int i,N,j;
-    int tam_bloque = 8;
 
     //Verificar parametro 
     if ((argc != 2)){
