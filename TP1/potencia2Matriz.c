@@ -13,12 +13,9 @@ double dwalltime(){
 }
 
 int main(int argc, char *argv[]){
-    int *A,*B,*C,*R;
-    int *D;
-    double time,tick;
+    int *A,*B;
+    double timeMult,timePow,tick;
     int i,N,j;
-
-    double max;
     int tam_bloque = 8;
 
     //Verificar parametro 
@@ -35,25 +32,26 @@ int main(int argc, char *argv[]){
 
     //Aloca memoria para la matriz
     A=(int*)malloc(sizeof(int)*N*N);
-
-    //Inicializa la matriz A y B de 1 a 40 x filas
+    B=(int*)malloc(sizeof(int)*N*N);
     
+    //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j] = rand() % 40 + 1; //random 1..40
-            }
+            A[i*N+j] = i;
+            B[i*N+j] = i;
         }
+    }
 
-    
-    //obtiene la potencia 2 de la matriz usando bit shift
+    //calcular la potencia multiplicando
     tick = dwalltime();
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j] = A[i*N+j] << 1;
-            }
+            double valor=B[i*N+j];
+            B[i*N+j]=valor*valor;
         }
-    time = dwalltime() - tick;
-    printf("Tiempo requerido para elevar ala potencia a la matriz con bit shift: %f \n",time);
+    }
+    timeMult = dwalltime() - tick;
+    printf("Tiempo requerido para elevar multiplicando es: %f \n",timeMult);
 
 
     //obtiene la potencia 2 de la matriz usando pow
@@ -61,19 +59,10 @@ int main(int argc, char *argv[]){
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             A[i*N+j] = pow(A[i*N+j],2);
-            }
+        }
     }
-    time = dwalltime() - tick;
-    printf("Tiempo requerido para elevar ala potencia a la matriz con pow: %f \n",time);
-
-    //printf("Tiempo requerido para elevar ala potencia a la matriz: %f con tam_bloque = %d\n",time,tam_bloque);
-
-
-    time_t t;
-    struct tm *tm = localtime(&t);
-    printf("Fecha y hora de la ejecucion: %02d/%02d/%d %02d:%02d:%02d\n",
-            tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900,
-            tm->tm_hour, tm->tm_min, tm->tm_sec);
+    timePow = dwalltime() - tick;
+    printf("Tiempo requerido para elevar a la potencia a la matriz con pow: %f \n",timePow);
 
     return 0;
 };

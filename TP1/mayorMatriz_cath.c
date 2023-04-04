@@ -13,8 +13,7 @@ double dwalltime(){
 }
 
 int main(int argc, char *argv[]){
-    double *A,*B,*C,*R;
-    int *D;
+    double *A;
     double time,time_Bloque,tick;
     int i,j,k,l,N;
     double maxComun = -INFINITY;
@@ -22,7 +21,7 @@ int main(int argc, char *argv[]){
     double block_maxA = -INFINITY;
     double minA = +INFINITY;
     double block_minA = +INFINITY;
-    int tam_bloque = 256;
+    int tam_bloque = 128;
 
     //Verificar parametro 
     if ((argc != 2)){
@@ -37,9 +36,6 @@ int main(int argc, char *argv[]){
 
     //Aloca memoria para las matrices
     A=(double*)malloc(sizeof(double)*N*N);
-    B=(double*)malloc(sizeof(double)*N*N);
-    C=(double*)malloc(sizeof(double)*N*N);
-    R=(double*)malloc(sizeof(double)*N*N);
 
     //Inicializa las matrices A
     for(i=0;i<N;i++){
@@ -79,7 +75,8 @@ int main(int argc, char *argv[]){
     }
     time_Bloque = dwalltime() - tick;
     printf("Tiempo requerido para calcular maximo por bloques: %f con tamanio bloque = %d\n",time_Bloque,tam_bloque);
-    maxComun++;
-    maxA++;
+    printf("Maximo Comun: %f\n",maxComun);  
+    printf("Maximo por bloques: %f\n",maxA);
+    free(A);
     return 0;
 };
