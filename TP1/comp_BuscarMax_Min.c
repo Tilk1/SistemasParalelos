@@ -17,6 +17,7 @@ int main(int argc, char *argv[]){
     double time_unFor,time_dosFor,time_Bloque,tick;
     int i,j,k,l,N;
     double maxA=-INFINITY,maxB=-INFINITY,block_maxA,block_maxB;
+    double minA=+INFINITY, minB=+INFINITY;
     int tam_bloque = 128;
 
     //Verificar parametro 
@@ -42,32 +43,43 @@ int main(int argc, char *argv[]){
         }
     }
     
-    //buscar Max en un par de for
+    //buscar max y min en un par de for
     tick = dwalltime();
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             if(A[i*N+j] > maxA){
                 maxA=A[i*N+j];
             }
+            if(A[i*N+j] < minA){
+                minA=A[i*N+j];
+            }
             if(B[i*N+j] > maxB){
                 maxB=B[i*N+j];
+            }
+            if(B[i*N+j] < minB){
+                minB=B[i*N+j];
             }
         }
     }
     time_unFor = dwalltime() - tick;
-    printf("Tiempo requerido para calcular maximo con un par de fors: %f\n",time_unFor);
+    printf("Tiempo requerido para calcular maximo y minimo con un par de fors: %f\n",time_unFor);
     printf("Max de A:%f, max de B:%f\n",maxA,maxB);
+    printf("Min de A:%f, min de B:%f\n",minA,minB);
     printf("--------------------\n");
 
-    //buscar max en dos fors
+    //buscar max y min en dos fors
     maxA=-INFINITY;
     maxB=-INFINITY;
-
+    minA=+INFINITY; 
+    minB=+INFINITY
     tick = dwalltime();
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             if(A[i*N+j] > maxA){
                 maxA=A[i*N+j];
+            }
+            if(A[i*N+j] < minA){
+                minA=A[i*N+j];
             }
         }
     }
@@ -75,6 +87,9 @@ int main(int argc, char *argv[]){
         for(j=0;j<N;j++){
             if(B[i*N+j] > maxB){
                 maxB=B[i*N+j];
+            }
+            if(B[i*N+j] < minB){
+                minB=B[i*N+j];
             }
         }
     }
@@ -82,10 +97,11 @@ int main(int argc, char *argv[]){
     time_dosFor = dwalltime() - tick;
     printf("Tiempo requerido para calcular maximo con dos par de fors: %f\n",time_dosFor);
     printf("Max de A:%f, max de B:%f\n",maxA,maxB);
+    printf("Min de A:%f, min de B:%f\n",minA,minB);
     printf("--------------------\n");
 
 
-    //buscar max por bloques
+/*     //buscar max por bloques
     maxA=-INFINITY;
     maxB=-INFINITY;
     tick = dwalltime();
@@ -120,6 +136,6 @@ int main(int argc, char *argv[]){
         }
     }
     time_Bloque = dwalltime() - tick;
-    printf("Tiempo requerido para calcular maximo por bloque: %f\n",time_Bloque);
-    printf("Max de A:%f, max de B:%f\n",maxA,maxB);
+    printf("Tiempo requerido para calcular maximo por bloque: %f\n",time_Bloque); 
+    printf("Max de A:%f, max de B:%f\n",maxA,maxB);*/
 }
