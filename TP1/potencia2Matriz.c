@@ -17,17 +17,12 @@ int main(int argc, char *argv[]){
     double timeMult,timePow,tick;
     int i,N,j;
 
-    //Verificar parametro 
-    if ((argc != 2)){
-        printf("El N debe ser: 512,1024,2048,4096\n");
-        exit(1);
-    }
     N = atoi(argv[1]);
-    if((N < 511) || (N > 4097) || (((N % 2)!=0))){
-        printf("El N debe ser: 512,1024,2048,4096\n");
+    //Verificar parametro 
+    if (!(argc == 2 && (N == 512 || N == 1024 || N == 2048 || N == 4096))){
+        printf("El N debe ser: 512, 1024, 2048, 4096\n");
         exit(1);
     }
-
 
     //Aloca memoria para la matriz
     A=(int*)malloc(sizeof(int)*N*N);
