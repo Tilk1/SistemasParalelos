@@ -81,7 +81,7 @@ int main(int argc, char *argv[]){
         MaxB = máximo de B
         PromB = promedio de B 
     2)  A x B = AB
-    3)  D^2 = D
+    3)  D^2 = D2
     4)  C x D = CD
     5)  ((MaxA x MaxB - MinA x MinB) / PromA x PromB) = RP 
     6)  RP x AB = AB
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]){
         }
     } 
 
-    //D^2= D2 (ordenado x columnas)
+    //D^2= D2 (ordenado x columnas), D2 es double, deja de ser int
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             double valor = D[j*N+i];
@@ -162,7 +162,9 @@ int main(int argc, char *argv[]){
         }
     } 
     
-    double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB));
+    double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
+
+    //RP x AB = AB
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             AB[j*N+i] = AB[j*N+i]*RP;
