@@ -12,23 +12,11 @@ double dwalltime(){
 	return sec;
 }
 
-void multBloque(double *bloqueA, double *bloqueB, double *bloqueC, int N,int tam_bloque){
-    int i, j, k;
-    double valorC=0;
-    for(i=0; i < tam_bloque; i++){
-        for(j = 0; j < tam_bloque; j++){
-            for(k = 0; k < tam_bloque; k++){
-                valorC += bloqueA[i*N+ k] * bloqueB[j*N+k];
-            }
-            bloqueC[i*N+j]=valorC;
-        }
-    }
-}
 
 int main(int argc, char *argv[]){
     double *A,*B,*C;
-    double time_bloque,tick;
-    int i,j,k,l,N;
+    double time_bloque,tick,temp;
+    int i,j,k,l,N, ii, jj, kk;
     int tam_bloque=32;
 
     N = atoi(argv[1]);
@@ -53,13 +41,22 @@ int main(int argc, char *argv[]){
 
     //Por bloques
     tick = dwalltime();
-    for (i = 0; i < N; i += tam_bloque){
-        for (j = 0; j < N; j += tam_bloque){
-            for(k = 0; k < N; k += tam_bloque){
-                multBloque(&A[i*N + k], &B[j*N + k], &C[i*N + j],N,tam_bloque);
-            } 
+    for (i = 0; i < N; i += tam_bloque) {
+        for (j = 0; j < N; j += tam_bloque) {
+            for  (k = 0; k < N; k += tam_bloque) {
+                for (ii = i; ii < i + tam_bloque; ii++) {
+                    for (jj = j; jj < j + tam_bloque; jj++) {
+                        double temp = 0.0; //acumula
+                        for (kk = k; kk < k + tam_bloque; kk++) {
+                            temp += A[ii*N+kk] * B[jj*N+kk];
+                        }
+                        C[ii*N+jj] += temp;
+                    }
+                }
+            }
         }
-    }
+    } 
+
     time_bloque = dwalltime() - tick;
     printf("Tiempo requerido para calcular por bloque: %f\n",time_bloque);
     free(A);
