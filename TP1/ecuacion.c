@@ -41,7 +41,7 @@ int main(int argc, char *argv[]){
 
     //Verificar parametro 
     if ((argc != 3)){
-        printf("Param1:512|1024|2048|4096 - Param2:tambloque\n");
+        printf("Param1:512|1024|2048|4096 - Param2:tambloque \n");
         exit(1);
     }
     N = atoi(argv[1]);
@@ -125,12 +125,14 @@ int main(int argc, char *argv[]){
         for (j = 0; j < N; j += tam_bloque) {
             for  (k = 0; k < N; k += tam_bloque) {
                 for (ii = i; ii < i + tam_bloque; ii++) {
-                    for (jj = j; jj < j + tam_bloque; jj++) {
-                        double temp = 0.0; //acumula
+                    int valorii=ii*N;
+                    for (jj = j; jj < j + tam_bloque; jj++){
+                        int valorjj=jj*N;
+                        double temp = 0.0;
                         for (kk = k; kk < k + tam_bloque; kk++) {
-                            temp += A[ii*N+kk] * B[jj*N+kk];
+                            temp += A[valorii+kk] * B[valorjj+kk];
                         }
-                        AB[ii*N+jj] += temp;
+                        AB[valorii+jj] += temp;
                     }
                 }
             }
@@ -150,17 +152,30 @@ int main(int argc, char *argv[]){
         for (j = 0; j < N; j += tam_bloque) {
             for  (k = 0; k < N; k += tam_bloque) {
                 for (ii = i; ii < i + tam_bloque; ii++) {
-                    for (jj = j; jj < j + tam_bloque; jj++) {
-                        double temp = 0.0; //acumula
+                    int valorii=ii*N;
+                    for (jj = j; jj < j + tam_bloque; jj++){
+                        int valorjj=jj*N;
+                        double temp = 0.0;
                         for (kk = k; kk < k + tam_bloque; kk++) {
-                            temp += C[ii*N+kk] * D2[jj*N+kk];
+                            temp += C[valorii+kk] * D2[valorjj+kk];
                         }
-                        CD[ii*N+jj] += temp;
+                        CD[valorii+jj] += temp;
                     }
                 }
             }
         }
-    } 
+    }
+
+
+/*     for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            double valorC = 0; 
+            for(k=0;k<N;k++){
+                valorC += C[i*N+k]*D2[j*N+k]; 
+            }
+            CD[i*N+j] = valorC;
+        }
+    } */
     
     double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
 
