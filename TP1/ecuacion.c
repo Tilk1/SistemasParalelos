@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <time.h>
 
 //Para calcular tiempo
@@ -23,13 +22,9 @@ void imprimir_fecha_hora_actual() {
 int main(int argc, char *argv[]){
     double *A,*B,*C,*R; double *D2,*CD,*AB;
     int *D;
-    double timeTotal,tick,maxB,minB;
+    double timeTotal,tick,maxA,minA,maxB,minB;
     int i,j,k,l,N,tam_bloque;
     int ii, jj, kk;
-    double maxA = -INFINITY;
-    double block_maxA = -INFINITY;
-    double minA = +INFINITY;
-    double block_minA = +INFINITY;
 
     // para los promedios
     double sumaA = 0; 
