@@ -17,7 +17,7 @@ int main(int argc, char *argv[]){
     double *A,*B,*C;
     double time_bloque,tick,temp;
     int i,j,k,l,N, ii, jj, kk;
-    int tam_bloque=32;
+    int tam_bloque=512;
 
     N = atoi(argv[1]);
     //Verificar parametro 
@@ -45,12 +45,14 @@ int main(int argc, char *argv[]){
         for (j = 0; j < N; j += tam_bloque) {
             for  (k = 0; k < N; k += tam_bloque) {
                 for (ii = i; ii < i + tam_bloque; ii++) {
-                    for (jj = j; jj < j + tam_bloque; jj++) {
+                    int valorii=ii*N;
+                    for (jj = j; jj < j + tam_bloque; jj++) {   
+                        int valorjj=jj*N;
                         double temp = 0.0; //acumula
                         for (kk = k; kk < k + tam_bloque; kk++) {
-                            temp += A[ii*N+kk] * B[jj*N+kk];
+                            temp += A[valorii+kk] * B[valorjj+kk];
                         }
-                        C[ii*N+jj] += temp;
+                        C[valorii+jj] += temp;
                     }
                 }
             }

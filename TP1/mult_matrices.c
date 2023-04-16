@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <time.h>
 
 void imprimir_fecha_hora_actual() {
@@ -20,19 +19,6 @@ double dwalltime(){
 	return sec;
 }
 
-/* void multBloque(double *bloqueA, double *bloqueB, double *bloqueC, int N,int tam_bloque){
-    int i, j, k;
-    double valorC=0;
-    for(i=0; i < tam_bloque; i++){
-        for(j = 0; j < tam_bloque; j++){
-            valorC = 0.0; // reiniciar el valor de valorC
-            for(k = 0; k < tam_bloque; k++){
-                valorC += bloqueA[i*N+ k] * bloqueB[j*N+tam_bloque];
-            }
-            bloqueC[i*N+j]+=valorC; //aca += en vez de =
-        }
-    }
-} */
 
 int main(int argc, char *argv[]){
     double *A1,*A2,*B1,*B2,*C1,*C2,*A3,*B3,*C3;
@@ -100,16 +86,6 @@ int main(int argc, char *argv[]){
     time = dwalltime() - tick;
     printf("Tiempo requerido para calcular la multiplicacion desordenada MAL: %f\n",time);
     printf("imprimo primer y ultimo elemento arreglo : [%0.0f] [%0.0f] \n",C2[0],C2[N*N-1]); 
-    //----------------------------------------------------------------------------------------------
-    //multiplicacion Por bloques con funcion
-    //NO FUNCIONA!
-/*     for (i = 0; i < N; i += tam_bloque){
-        for (j = 0; j < N; j += tam_bloque){
-            for(k = 0; k < N; k += tam_bloque){
-                multBloque(&A[i*N + k], &B[j*N + k], &C[i*N + j],N,tam_bloque);
-            }
-        }
-    } */
 
     //----------------------------------------------------------------------------------------------
     //multiplicacion matrices por bloques,  furiosa 6 fors
@@ -174,15 +150,3 @@ int main(int argc, char *argv[]){
     free(C3);
     return 0;
 }
-
-
-  //multiplicacion de matrices , matriz A ordenada por filas, B por columna
-    //fila y columnas mal sin bloqe
-    //fila y columna bien sin bloque
-    //fila y columna bien con bloque tam n 32
-    //fila y columna bien con bloque tam n 64
-    //fila y columna bien con bloque tam n 128
-    //fila y columna bien con bloque tam n 256
-    //fila y columna bien con bloque tam optimo CON o1
-    //fila y columna bien con bloque tam optimo CON o2
-    //fila y columna bien con bloque tam optimo CON o3

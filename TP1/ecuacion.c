@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 
 //Para calcular tiempo
 double dwalltime(){
@@ -20,7 +21,8 @@ void imprimir_fecha_hora_actual() {
 }
 
 int main(int argc, char *argv[]){
-    double *A,*B,*C,*R; double *D2,*CD,*AB;
+    double *A,*B,*C,*R; 
+    double *D2,*CD,*AB;
     int *D;
     double timeTotal,tick,maxA,minA,maxB,minB;
     int i,j,k,l,N,tam_bloque;
@@ -59,11 +61,7 @@ int main(int argc, char *argv[]){
             A[i*N+j]=1.0; //Ordenada por Filas
             B[j*N+i]=1.0; //Ordenada por Columnas
             C[i*N+j]=1.0; //Ordenada Por Filas
-            D[j*N+i]=1;//rand() % 40 + 1; //Ordenada por Columnas 1..40
-            R[i*N+j]=0; 
-            CD[j*N+i]=0; //Si yo pongo 1 da mal
-            AB[i*N+j]=0; //si yo pongo 1 da mal
-            D2[j*N+i]=0;//Ordenada por Columnas 1..40
+            D[j*N+i]=rand()%40+1; //Ordenada por Columnas 1..40
         }
     }
     
@@ -78,7 +76,7 @@ int main(int argc, char *argv[]){
     2)  A x B = AB
     3)  D^2 = D2
     4)  C x D = CD
-    5)  ((MaxA x MaxB - MinA x MinB) / PromA x PromB) = RP 
+    5)  (MaxA x MaxB - MinA x MinB) / (PromA x PromB) = RP 
     6)  RP x AB = AB
     7)  AB + CD2 = R
 
@@ -87,7 +85,7 @@ int main(int argc, char *argv[]){
     //------------EMPIEZA A CONTAR EL TIEMPO-----------------------
     tick = dwalltime();
 
-    //calcula max de A y B , min de A y B y promedio de A y B
+    //1) calcula max de A y B , min de A y B y promedio de A y B
     maxA=A[0];
     minA=A[0];
     maxB=B[0];
@@ -115,7 +113,7 @@ int main(int argc, char *argv[]){
     promedioA=sumaA/cantElementos;
     promedioB=sumaB/cantElementos;
 
-    // A x B = AB(ordenado x filas)
+    //2) A x B = AB(ordenado x filas)
     for (i = 0; i < N; i += tam_bloque) {
         for (j = 0; j < N; j += tam_bloque) {
             for  (k = 0; k < N; k += tam_bloque) {
@@ -134,15 +132,14 @@ int main(int argc, char *argv[]){
         }
     } 
 
-    //D^2= D2 (ordenado x columnas), D2 es double, deja de ser int
+    //3) D^2= D2 (ordenado x columnas), D2 es double, deja de ser int
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            double valor = D[j*N+i];
-            D2[j*N+i] = valor*valor;
+            D2[j*N+i] = pow(D[j*N+i],2);
         }
     }
- 
-    // C x D2 = CD(ordenado x filas)
+
+    //4) C x D2 = CD(ordenado x filas)
     for (i = 0; i < N; i += tam_bloque) {
         for (j = 0; j < N; j += tam_bloque) {
             for  (k = 0; k < N; k += tam_bloque) {
@@ -160,21 +157,11 @@ int main(int argc, char *argv[]){
             }
         }
     }
-
-
-/*     for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            double valorC = 0; 
-            for(k=0;k<N;k++){
-                valorC += C[i*N+k]*D2[j*N+k]; 
-            }
-            CD[i*N+j] = valorC;
-        }
-    } */
     
+    //5) calculo de la primera parte de la ecuacion
     double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
 
-    //RP x AB = AB
+    //6) RP x AB = AB
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             AB[j*N+i] = AB[j*N+i]*RP;
@@ -184,23 +171,20 @@ int main(int argc, char *argv[]){
     //AB + CD = R
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            R[i*N+j] = AB[i*N + j] + CD[j*N + i];
+            R[i*N+j] = AB[i*N+j] + CD[j*N+i];
         }
     }
 
     timeTotal = dwalltime() - tick;
     //------------FIN DE  CONTAR EL TIEMPO-----------------------
-/*  printf("imprimo R");
+/*     printf("imprimo R\n");
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             printf("[%i][%i]= %0.0f\n",i,j,R[i*N+j]);
         }
     } */
 
-    printf("RP: %.2f\n",RP);
-    printf("resultados parciales maxA:%0.0f minA:%0.0f promA:%0.0f maxB:%0.0f minB:%0.1f promB:%0.1f \n",maxA,minA,promedioA,maxB,minB,promedioB);
-    printf("N = %d\n",N);
-    printf("imprimo primer y ultimo elemento del arreglo R, deben ser N c/u : [%0.0f] [%0.0f] \n",R[0],R[N*N-1]);
+    //printf("resultados parciales maxA:%0.0f minA:%0.0f promA:%0.0f maxB:%0.0f minB:%0.1f promB:%0.1f \n",maxA,minA,promedioA,maxB,minB,promedioB);
     printf("matriz: %dx%d\n",N,N);
     printf("tam_bloque: %d\n",tam_bloque);
     printf("Tiempo requerido total de la ecuacion: %f\n",timeTotal);

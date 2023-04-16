@@ -13,8 +13,9 @@ double dwalltime(){
 }
 
 int main(int argc, char *argv[]){
-    int *A,*B;
-    double timeMult,timePow,tick;
+    int *A,*B,*C;
+    double *A2,*B2,*C2;
+    double timeMult,timePow,timeVector,tick;
     int i,N,j;
 
     N = atoi(argv[1]);
@@ -24,15 +25,23 @@ int main(int argc, char *argv[]){
         exit(1);
     }
 
+
     //Aloca memoria para la matriz
     A=(int*)malloc(sizeof(int)*N*N);
+    A2=(double*)malloc(sizeof(double)*N*N);
+
     B=(int*)malloc(sizeof(int)*N*N);
+    B2=(double*)malloc(sizeof(double)*N*N);
+
+    C=(int*)malloc(sizeof(int)*N*N);
+    C2=(double*)malloc(sizeof(double)*N*N);
     
     //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j] = i;
-            B[i*N+j] = i;
+            A[i*N+j] = rand()%40+1;
+            B[i*N+j] = rand()%40+1;
+            C[i*N+j] = rand()%40+1;
         }
     }
 
@@ -41,7 +50,7 @@ int main(int argc, char *argv[]){
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             double valor=B[i*N+j];
-            B[i*N+j]=valor*valor;
+            B2[i*N+j]=valor*valor;
         }
     }
     timeMult = dwalltime() - tick;
@@ -52,11 +61,34 @@ int main(int argc, char *argv[]){
     tick = dwalltime();
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j] = pow(A[i*N+j],2);
+            A2[i*N+j] = pow(A[i*N+j],2);
         }
     }
     timePow = dwalltime() - tick;
     printf("Tiempo requerido para elevar a la potencia a la matriz con pow: %f \n",timePow);
 
+    //obtiene la potencia 2 con un vector con los valores precargados
+    tick = dwalltime();
+    int resultados[40];
+    for(i=0;i<40;i++){
+        resultados[i+1]= (i+1)*(i+1);
+    }
+
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            int valor = C[i*N+j];
+            double v = resultados[valor];
+            C2[i*N+j] = v;
+        }
+    }
+    timeVector = dwalltime() - tick;
+    printf("Tiempo requerido para elevar a la potencia a la matriz con vector: %f \n",timeVector);
+
+    free(A);
+    free(B);
+    free(C);
+    free(A2);
+    free(B2);
+    free(C2);
     return 0;
 };

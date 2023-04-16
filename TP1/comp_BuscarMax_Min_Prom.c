@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
     A=(double*)malloc(sizeof(double)*N*N);
     B=(double*)malloc(sizeof(double)*N*N);
 
-    //Inicializa las matrices
+    //Inicializa las matrices A y determina la ubicacion en memoria
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             A[i*N+j]=i+j;
@@ -104,4 +104,6 @@ int main(int argc, char *argv[]){
     printf("Min de A:%f, min de B:%f\n",minA,minB);
     printf("Promedio de A:%f, promedio de B:%f\n",promedioA,promedioB);
     printf("--------------------\n");
+    free(A);
+    free(B);
 }
