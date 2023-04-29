@@ -63,14 +63,12 @@ int main(int argc, char *argv[]){
         MinB = mínimo de B
         MaxB = máximo de B
         PromB = promedio de B 
-    2)  A x B = AB
+    2)  AB = A x B
     3)  D^2 = D2
-    4)  C x D2 = CD
-    5)  (MaxA x MaxB - MinA x MinB) / (PromA x PromB) = RP 
-    6)  RP x AB = AB
-    7)  AB + CD2 = R
-
-    */
+    4)  CD= C x D2 
+    5)  RP = (MaxA x MaxB - MinA x MinB) / (PromA x PromB) 
+    6)  AB = RP x AB
+    7)  R = AB + CD */
 
     //------------EMPIEZA A CONTAR EL TIEMPO-----------------------
     tick = dwalltime();
