@@ -15,8 +15,7 @@ int main(int argc, char *argv[]){
     double *D2,*CD,*AB;
     int *D;
     double timeTotal,tick,maxA,minA,maxB,minB;
-    int i,j,k,l,N,tam_bloque;
-    int ii, jj, kk, resultados[40];
+    int i,j,k,l,N,tam_bloque, resultados[40];
 
     // para los promedios
     double sumaA = 0; 
