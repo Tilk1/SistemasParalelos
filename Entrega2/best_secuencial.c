@@ -66,7 +66,7 @@ int main(int argc, char *argv[]){
         PromB = promedio de B 
     2)  A x B = AB
     3)  D^2 = D2
-    4)  C x D = CD
+    4)  C x D2 = CD
     5)  (MaxA x MaxB - MinA x MinB) / (PromA x PromB) = RP 
     6)  RP x AB = AB
     7)  AB + CD2 = R
@@ -107,11 +107,12 @@ int main(int argc, char *argv[]){
     mult_matrices(A,B,AB,N,tam_bloque);
 
 
-    //3) D^2= D2 (ordenado x columnas), D2 es double, deja de ser int
+    //precargo un array con las potencias de 1..40
     for(i=0;i<40;i++){
         resultados[i+1]= (i+1)*(i+1);
     }
 
+    //3) D2 = D^2 (ordenado x columnas), D2 es double, deja de ser int
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             int valor = D[i*N+j];
