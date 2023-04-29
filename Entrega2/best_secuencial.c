@@ -71,18 +71,6 @@ int main(int argc, char *argv[]){
     7)  AB + CD2 = R
 
     */
-    printf("imprimo A\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,A[i*N+j]);
-        }
-    }
-    printf("imprimo B\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,B[j*N+i]);
-        }
-    }
 
     //------------EMPIEZA A CONTAR EL TIEMPO-----------------------
     tick = dwalltime();
@@ -116,13 +104,6 @@ int main(int argc, char *argv[]){
 
     //2) A x B = AB(ordenado x filas)
     mult_matrices(A,B,AB,N,tam_bloque);
-
-    printf("imprimo AB\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,AB[i*N+j]);
-        }
-    }
 
     //precargo un array con las potencias de 1..40
     for(i=1;i<=40;i++){
