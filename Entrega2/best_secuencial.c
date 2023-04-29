@@ -48,8 +48,8 @@ int main(int argc, char *argv[]){
     //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j]=rand()%10+1;; //Ordenada por Filas
-            B[j*N+i]=rand()%10+1;; //Ordenada por Columnas
+            A[i*N+j]=1; //Ordenada por Filas
+            B[j*N+i]=1; //Ordenada por Columnas
             C[i*N+j]=1; //Ordenada Por Filas
             D[j*N+i]=rand()%40+1; //Ordenada por Columnas 1..40
         }
