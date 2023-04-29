@@ -5,21 +5,10 @@
 #include <sys/time.h>
 
 //Para calcular tiempo
-double dwalltime(){
-        double sec;
-        struct timeval tv;
-        gettimeofday(&tv,NULL);
-        sec = tv.tv_sec + tv.tv_usec/1000000.0;
-        return sec;
-}
-
-void imprimir_fecha_hora_actual() {
-    time_t t = time(NULL);
-    struct tm *tm = localtime(&t);
-    char fecha_hora[100];
-    strftime(fecha_hora, sizeof(fecha_hora), "%A %d %B %Y %H:%M:%S", tm);
-    printf("Fecha y hora actual: %s\n", fecha_hora);
-}
+double dwalltime();
+void imprimir_fecha_hora_actual();
+void mult_matrices(double *a, double *b, double *c, int n, int bs); //multiplicar matriz
+void mult_bloques(double *ablk, double *bblk, double *cblk, int n, int bs); //multiplicar bloque
 
 int main(int argc, char *argv[]){
     double *A,*B,*C,*R; 
@@ -59,12 +48,13 @@ int main(int argc, char *argv[]){
     //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j]=1.0; //Ordenada por Filas
-            B[j*N+i]=1.0; //Ordenada por Columnas
-            C[i*N+j]=1.0; //Ordenada Por Filas
+            A[i*N+j]=rand()%10+1;; //Ordenada por Filas
+            B[j*N+i]=rand()%10+1;; //Ordenada por Columnas
+            C[i*N+j]=1; //Ordenada Por Filas
             D[j*N+i]=rand()%40+1; //Ordenada por Columnas 1..40
         }
     }
+
     
     /*  PASOS
 
@@ -114,23 +104,8 @@ int main(int argc, char *argv[]){
     promedioB=sumaB/cantElementos;
 
     //2) A x B = AB(ordenado x filas)
-    for (i = 0; i < N; i += tam_bloque) {
-        for (j = 0; j < N; j += tam_bloque) {
-            for  (k = 0; k < N; k += tam_bloque) {
-                for (ii = i; ii < i + tam_bloque; ii++) {
-                    int valorii=ii*N;
-                    for (jj = j; jj < j + tam_bloque; jj++){
-                        int valorjj=jj*N;
-                        double temp = 0.0;
-                        for (kk = k; kk < k + tam_bloque; kk++) {
-                            temp += A[valorii+kk] * B[valorjj+kk];
-                        }
-                        AB[valorii+jj] += temp;
-                    }
-                }
-            }
-        }
-    } 
+    mult_matrices(A,B,AB,N,tam_bloque);
+
 
     //3) D^2= D2 (ordenado x columnas), D2 es double, deja de ser int
     for(i=0;i<40;i++){
@@ -146,28 +121,12 @@ int main(int argc, char *argv[]){
     }
 
     //4) C x D2 = CD(ordenado x filas)
-    for (i = 0; i < N; i += tam_bloque) {
-        for (j = 0; j < N; j += tam_bloque) {
-            for  (k = 0; k < N; k += tam_bloque) {
-                for (ii = i; ii < i + tam_bloque; ii++) {
-                    int valorii=ii*N;
-                    for (jj = j; jj < j + tam_bloque; jj++){
-                        int valorjj=jj*N;
-                        double temp = 0.0;
-                        for (kk = k; kk < k + tam_bloque; kk++) {
-                            temp += C[valorii+kk] * D2[valorjj+kk];
-                        }
-                        CD[valorii+jj] += temp;
-                    }
-                }
-            }
-        }
-    }
+    mult_matrices(C,D2,CD,N,tam_bloque);
     
     //5) calculo de la primera parte de la ecuacion
     double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
 
-    //6) RP x AB = AB
+    //6) AB = AB x RP 
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             AB[j*N+i] = AB[j*N+i]*RP;
@@ -182,19 +141,13 @@ int main(int argc, char *argv[]){
     }
 
     timeTotal = dwalltime() - tick;
-    //------------FIN DE  CONTAR EL TIEMPO-----------------------
-/*     printf("imprimo R\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,R[i*N+j]);
-        }
-    } */
 
     //printf("resultados parciales maxA:%0.0f minA:%0.0f promA:%0.0f maxB:%0.0f minB:%0.1f promB:%0.1f \n",maxA,minA,promedioA,maxB,minB,promedioB);
     printf("matriz: %dx%d\n",N,N);
     printf("tam_bloque: %d\n",tam_bloque);
     printf("Tiempo requerido total de la ecuacion: %f\n",timeTotal);
     imprimir_fecha_hora_actual();
+
     free(A);
     free(B);
     free(C);
@@ -204,4 +157,44 @@ int main(int argc, char *argv[]){
     free(CD);
     free(D2);
     return 0;
+}
+
+void mult_matrices(double *A, double *B, double *C, int N, int bs){
+    int i, j, k;
+    for(i = 0; i < N; i += bs){
+        for(j = 0; j < N; j += bs){
+            for(k = 0; k < N; k += bs){
+                mult_bloques(&A[i*N+k], &B[j*N+k], &C[i*N+j],N,bs);
+            }
+        }
+    }
+}
+
+void mult_bloques(double *ablk, double *bblk, double *cblk, int N, int bs){
+    int i, j, k; 
+    for(i = 0; i < bs; i++){
+        for(j = 0; j < bs; j++){
+            int temp=0;
+            for(k = 0; k < bs; k++){
+                temp += ablk[i*N+k] * bblk[j*N+k];
+            }
+            cblk[i*N+j]+=temp;
+        }
+    }
+}
+
+void imprimir_fecha_hora_actual() {
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+    char fecha_hora[100];
+    strftime(fecha_hora, sizeof(fecha_hora), "%A %d %B %Y %H:%M:%S", tm);
+    printf("Fecha y hora actual: %s\n", fecha_hora);
+}
+
+double dwalltime(){
+        double sec;
+        struct timeval tv;
+        gettimeofday(&tv,NULL);
+        sec = tv.tv_sec + tv.tv_usec/1000000.0;
+        return sec;
 }
