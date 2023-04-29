@@ -47,8 +47,8 @@ int main(int argc, char *argv[]){
     //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j]=1; //Ordenada por Filas
-            B[j*N+i]=1; //Ordenada por Columnas
+            A[i*N+j]=rand()%10+1; //Ordenada por Filas
+            B[j*N+i]=rand()%10+1; //Ordenada por Columnas
             C[i*N+j]=1; //Ordenada Por Filas
             D[j*N+i]=rand()%40+1; //Ordenada por Columnas 1..40
         }
@@ -71,6 +71,18 @@ int main(int argc, char *argv[]){
     7)  AB + CD2 = R
 
     */
+    printf("imprimo A\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,A[i*N+j]);
+        }
+    }
+    printf("imprimo B\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,B[j*N+i]);
+        }
+    }
 
     //------------EMPIEZA A CONTAR EL TIEMPO-----------------------
     tick = dwalltime();
@@ -105,6 +117,12 @@ int main(int argc, char *argv[]){
     //2) A x B = AB(ordenado x filas)
     mult_matrices(A,B,AB,N,tam_bloque);
 
+    printf("imprimo AB\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,AB[i*N+j]);
+        }
+    }
 
     //precargo un array con las potencias de 1..40
     for(i=1;i<=40;i++){
@@ -162,9 +180,11 @@ int main(int argc, char *argv[]){
 void mult_matrices(double *A, double *B, double *C, int N, int bs){
     int i, j, k;
     for(i = 0; i < N; i += bs){
+        int valori=i*N;
         for(j = 0; j < N; j += bs){
+            int valorj=j*N;
             for(k = 0; k < N; k += bs){
-                mult_bloques(&A[i*N+k], &B[j*N+k], &C[i*N+j],N,bs);
+                mult_bloques(&A[valori+k], &B[valorj+k], &C[valori+j],N,bs);
             }
         }
     }
@@ -173,12 +193,14 @@ void mult_matrices(double *A, double *B, double *C, int N, int bs){
 void mult_bloques(double *ablk, double *bblk, double *cblk, int N, int bs){
     int i, j, k; 
     for(i = 0; i < bs; i++){
+        int valori=i*N;
         for(j = 0; j < bs; j++){
             int temp=0;
+            int valorj=j*N;
             for(k = 0; k < bs; k++){
-                temp += ablk[i*N+k] * bblk[j*N+k];
+                temp += ablk[valori+k] * bblk[valorj+k];
             }
-            cblk[i*N+j]+=temp;
+            cblk[valori+j]+=temp;
         }
     }
 }
