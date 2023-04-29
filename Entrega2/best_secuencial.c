@@ -15,7 +15,7 @@ int main(int argc, char *argv[]){
     double *D2,*CD,*AB;
     int *D;
     double timeTotal,tick,maxA,minA,maxB,minB;
-    int i,j,k,l,N,tam_bloque, resultados[40];
+    int i,j,k,l,N,tam_bloque, resultados[41];
 
     // para los promedios
     double sumaA = 0; 
@@ -107,8 +107,8 @@ int main(int argc, char *argv[]){
 
 
     //precargo un array con las potencias de 1..40
-    for(i=0;i<40;i++){
-        resultados[i+1]= (i+1)*(i+1);
+    for(i=1;i<=40;i++){
+        resultados[i]= i*i;
     }
 
     //3) D2 = D^2 (ordenado x columnas), D2 es double, deja de ser int
