@@ -22,8 +22,8 @@ pthread_mutex_t acceder_var;
 
 
 int main(int argc, char *argv[]){
-    double time,tick,;
-    int i,j,k,l,N,cant_threads, resultados[40];
+    double time,tick,promedioA,promedioB;
+    int i,j,k,cantElementos,resultados[40];
 
     //Verificar parametro 
     if ((argc != 3)){
@@ -48,22 +48,23 @@ int main(int argc, char *argv[]){
     D2=(double*) malloc(N*N*sizeof(double));
 
 
-    // para los promedios
-    double sumaA = 0; 
-    double sumaB = 0;
-    double promedioA = 0; 
-    double promedioB = 0;
-    double cantElementos;
-
     //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j]=1; //Ordenada por Filas
-            B[j*N+i]=1; //Ordenada por Columnas
+            A[i*N+j]=rand()%100+1; //Ordenada por Filas
+            B[j*N+i]=rand()%100+1; //Ordenada por Columnas
             C[i*N+j]=1; //Ordenada Por Filas
             D[j*N+i]=rand()%40+1; //Ordenada por Columnas 1..40
         }
     }
+
+    //para los promedios
+    sumaA = 0; 
+    sumaB = 0;
+    maxA=A[0];
+    minA=A[0];
+    maxB=B[0];
+    minB=B[0];
 
     pthread_attr_init(&attr); //inicializacion del atributo
 
@@ -77,10 +78,23 @@ int main(int argc, char *argv[]){
         PromB = promedio de B 
     2)  AB = A x B
     3)  D2 = D^2
-    4)  D = C x D2 
+    4)  CD = C x D2 
     5)  RP = (MaxA x MaxB - MinA x MinB) / (PromA x PromB)
     6)  AB = RP x AB 
     7)  R = AB + CD2 */
+
+    printf("imprimo A\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,A[i*N+j]);
+        }
+    }
+    printf("imprimo B\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,B[j*N+i]);
+        }
+    }
 
     //EMPIEZA A CONTAR EL TIEMPO --------------------------------------
     tick = dwalltime();
@@ -88,8 +102,9 @@ int main(int argc, char *argv[]){
     //1) Calcula max,min y promedio de A y B -> paralelo
     for(i=0;i<cant_threads;i++){
         ids[i]=i;
-        pthread_create(&threads[i],&attr,encontrar_valoresA,&ids[i]);
-        pthread_create(&threads[i],&attr,encontrar_valoresB,&ids[i]); //?? 
+        pthread_create(&threads[i],&attr,encontrar_valoresA,&ids[i]); //1)
+        pthread_create(&threads[i],&attr,encontrar_valoresB,&ids[i]); //1) ??
+        pthread_create(&threads[i],&attr,mult_matricesAxB,&ids[i]);  //2) ??
     }
 
     for(i=0;i<cant_threads;i++){
@@ -99,9 +114,23 @@ int main(int argc, char *argv[]){
     promedioA=sumaA/cantElementos;
     promedioB=sumaB/cantElementos;
 
-    //2) AB = A X B -> paralelo
+    printf("imprimo AB\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,AB[i*N+j]);
+        }
+    } 
 
-    //3) D2= D^2 -> paralelo
+    /* printf("maxA: %f, minA: %f:, sumaA: %f \n",maxA,minA,sumaA);
+    printf("maxB: %f, minB: %f:, sumaB: %f \n",maxB,minB,sumaB); */
+
+    //2) AB = A X B -> paralelo. Ta el create arriba
+
+
+    //3) D2= D^2 -> paralelo??
+    for(i=1;i<=40;i++){
+        resultados[i]= i*i;
+    }
 
     //5) Calculo de RP -> secuencial
     double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
@@ -123,13 +152,14 @@ int main(int argc, char *argv[]){
 
 
 void * encontrar_valoresA(void * ptr){
-    int *p,id,i,j,max,min,suma;
+    int *p,id,i,j;
     p=(int*) ptr;
     id=*p;
     int primera=id*(N/cant_threads);
     int ultima=primera+(N/cant_threads)-1;
-    max=A[primera];
-    min=A[primera];
+    double max=A[primera];
+    double min=A[primera];
+    double suma=0;
     for(i=primera; i<=ultima; i++){
         for(j=0;j<N;j++){
             int pos=i*N+j;
@@ -138,9 +168,37 @@ void * encontrar_valoresA(void * ptr){
             suma+=A[pos];
         }
     }
-    pthread_mutex_lock(&);
+    pthread_mutex_lock(&acceder_var);
+    if(max>maxA) maxA=max;
+    if(min<minA) minA=min;
+    sumaA+=suma;
+    pthread_mutex_unlock(&acceder_var);
+    pthread_exit(0);
+}
 
-    pthread_mutex_unlock(&);
+void * encontrar_valoresB(void * ptr){
+    int *p,id,i,j;
+    p=(int*) ptr;
+    id=*p;
+    int primera=id*(N/cant_threads);
+    int ultima=primera+(N/cant_threads)-1;
+    double max=B[primera];
+    double min=B[primera];
+    double suma=0;
+    for(i=primera; i<=ultima; i++){
+        for(j=0;j<N;j++){
+            int pos=i*N+j;
+            if(B[pos] > max) max=B[pos];
+            else if(B[pos] < min) min=B[pos];
+            suma+=B[pos];
+        }
+    }
+    pthread_mutex_lock(&acceder_var);
+    if(max>maxB) maxB=max;
+    if(min<minB) minB=min;
+    sumaB+=suma;
+    pthread_mutex_unlock(&acceder_var);
+    pthread_exit(0);
 }
 
 void * mult_matricesAxB(void * ptr){
@@ -160,7 +218,6 @@ void * mult_matricesAxB(void * ptr){
     }
     pthread_exit(0);
 }
-
 
 
 double dwalltime(){
