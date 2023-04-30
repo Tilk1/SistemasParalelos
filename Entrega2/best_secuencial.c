@@ -91,7 +91,7 @@ int main(int argc, char *argv[]){
     }
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            int pos=i*N+j;
+            int pos=j*N+i;
             if(B[pos] > maxB) maxB=B[pos];
             else if(B[pos] < minB) minB=B[pos];
             sumaB+=B[pos];
