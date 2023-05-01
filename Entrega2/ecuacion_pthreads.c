@@ -11,7 +11,8 @@ void * encontrar_valoresB(void* ptr);
 void * mult_matricesAxB(void* ptr);
 void * potencia_D(void* ptr);
 void * mult_matricesCxD2(void* ptr);
-void * sumar_AB_CD2(void* ptr);
+void * sumar_AB_CD(void* ptr);
+void * multiplicacion_ABxRP(void* ptr);
 
 
 //variables compartidas
@@ -20,6 +21,7 @@ double *A,*B,*C,*D2,*CD,*AB,*R;
 int *D;
 int resultados[40];
 double maxA,minA,maxB,minB,sumaA,sumaB;
+double RP;
 
 //mutexs
 pthread_mutex_t acceder_var;
@@ -166,15 +168,22 @@ int main(int argc, char *argv[]){
     }
 
     //5) Calculo de RP -> secuencial
-    double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
+    RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
 
     //6) AB = AB X RP(double)
+    for(i=0;i<cant_threads;i++){
+        ids[i]=i;
+        pthread_create(&threads[i],&attr,multiplicacion_ABxRP,&ids[i]);
+    }
 
+    for(i=0;i<cant_threads;i++){
+        pthread_join(threads[i],NULL);
+    }
 
     //7) R = AB + CD
     for(i=0;i<cant_threads;i++){
         ids[i]=i;
-        pthread_create(&threads[i],&attr,sumar_AB_CD2,&ids[i]);
+        pthread_create(&threads[i],&attr,sumar_AB_CD,&ids[i]);
     }
 
     for(i=0;i<cant_threads;i++){
@@ -302,8 +311,23 @@ void * mult_matricesCxD2(void* ptr){
     pthread_exit(0);
 }
 
+//Paso 6
+void * multiplicacion_ABxRP(void * ptr){
+    int *p,id,i,j,k;
+    p=(int*) ptr;
+    id=*p;
+    int primera=id*(N/cant_threads);
+    int ultima=primera+(N/cant_threads)-1;
+    for(i=primera; i<=ultima; i++){
+        for(j=0;j<N;j++){
+            AB[i*N+j] = AB[i*N+j]*RP;
+        }
+    }
+    pthread_exit(0);
+}
+
 //Paso 7
-void * sumar_AB_CD2(void * ptr){
+void * sumar_AB_CD(void * ptr){
     int *p,id,i,j;
     p=(int*) ptr;
     id=*p;
