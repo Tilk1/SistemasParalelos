@@ -126,14 +126,14 @@ int main(int argc, char *argv[]){
     //6) AB = AB x RP 
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            AB[j*N+i] = AB[j*N+i]*RP;
+            AB[i*N+j] = AB[i*N+j]*RP;
         }
     }
 
     //AB + CD = R
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            R[i*N+j] = AB[i*N+j] + CD[j*N+i];
+            R[i*N+j] = AB[i*N+j] + CD[i*N+j];
         }
     }
 
