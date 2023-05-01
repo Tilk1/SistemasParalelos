@@ -213,7 +213,7 @@ void * mult_matricesAxB(void * ptr){
             for(k=0;k<N;k++){
                 temp += A[i*N+k]*B[j*N+k]; 
             }
-            AB[i*N+j] = temp;
+            AB[i*N+j] += temp;
         }
     }
     pthread_exit(0);
