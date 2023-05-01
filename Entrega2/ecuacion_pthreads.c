@@ -136,20 +136,6 @@ int main(int argc, char *argv[]){
         pthread_join(threads[i],NULL);
     }
 
-    printf("imprimo C\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,C[i*N+j]);
-        }
-    }
-
-    printf("imprimo D2\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,D2[j*N+i]);
-        }
-    }
-
     //4) CD = C X D2
     for(i=0;i<cant_threads;i++){
         ids[i]=i;
@@ -160,12 +146,6 @@ int main(int argc, char *argv[]){
         pthread_join(threads[i],NULL);
     }
 
-    printf("imprimo CD\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,CD[i*N+j]);
-        }
-    }
 
     //5) Calculo de RP -> secuencial
     RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
@@ -180,6 +160,19 @@ int main(int argc, char *argv[]){
         pthread_join(threads[i],NULL);
     }
 
+    printf("imprimo AB \n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,AB[i*N+j]);
+        }
+    }
+    printf("imprimo CD\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,CD[i*N+j]);
+        }
+    }
+
     //7) R = AB + CD
     for(i=0;i<cant_threads;i++){
         ids[i]=i;
@@ -188,6 +181,13 @@ int main(int argc, char *argv[]){
 
     for(i=0;i<cant_threads;i++){
         pthread_join(threads[i],NULL);
+    }
+
+    printf("imprimo R\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,R[i*N+j]);
+        }
     }
 
     time = dwalltime() - tick;
@@ -217,14 +217,18 @@ void * encontrar_valoresA(void * ptr){
     for(i=primera; i<=ultima; i++){
         for(j=0;j<N;j++){
             int pos=i*N+j;
-            if(A[pos] > max) max=A[pos];
-            else if(A[pos] < min) min=A[pos];
+            if(A[pos] > max) 
+                max=A[pos];
+            else if(A[pos] < min) 
+                min=A[pos];
             suma+=A[pos];
         }
     }
     pthread_mutex_lock(&acceder_var);
-    if(max>maxA) maxA=max;
-    if(min<minA) minA=min;
+    if(max>maxA) 
+        maxA=max;
+    if(min<minA) 
+        minA=min;
     sumaA+=suma;
     pthread_mutex_unlock(&acceder_var);
     pthread_exit(0);
@@ -242,15 +246,19 @@ void * encontrar_valoresB(void * ptr){
     double suma=0;
     for(i=primera; i<=ultima; i++){
         for(j=0;j<N;j++){
-            int pos=i*N+j;
-            if(B[pos] > max) max=B[pos];
-            else if(B[pos] < min) min=B[pos];
+            int pos=j*N+i;
+            if(B[pos] > max) 
+                max=B[pos];
+            else if(B[pos] < min) 
+                min=B[pos];
             suma+=B[pos];
         }
     }
     pthread_mutex_lock(&acceder_var);
-    if(max>maxB) maxB=max;
-    if(min<minB) minB=min;
+    if(max>maxB) 
+        maxB=max;
+    if(min<minB) 
+        minB=min;
     sumaB+=suma;
     pthread_mutex_unlock(&acceder_var);
     pthread_exit(0);
