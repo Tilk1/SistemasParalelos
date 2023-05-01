@@ -6,10 +6,11 @@
 
 //Declaracion funciones
 double dwalltime();
-void * mult_matricesAxB(void* ptr);
 void * encontrar_valoresA(void* ptr);
 void * encontrar_valoresB(void* ptr);
+void * mult_matricesAxB(void* ptr);
 void * potencia_D(void* ptr);
+void * mult_matricesCxD2(void* ptr);
 void * sumar_AB_CD2(void* ptr);
 
 
@@ -56,7 +57,7 @@ int main(int argc, char *argv[]){
         for(j=0;j<N;j++){
             A[i*N+j]=rand()%100+1; //Ordenada por Filas
             B[j*N+i]=rand()%100+1; //Ordenada por Columnas
-            C[i*N+j]=1; //Ordenada Por Filas
+            C[i*N+j]=rand()%40+1; //Ordenada Por Filas
             D[j*N+i]=rand()%40+1; //Ordenada por Columnas 1..40
         }
     }
@@ -84,20 +85,17 @@ int main(int argc, char *argv[]){
     4)  CD = C x D2 
     5)  RP = (MaxA x MaxB - MinA x MinB) / (PromA x PromB)
     6)  AB = RP x AB 
-    7)  R = AB + CD2 */
-
-/*     printf("imprimo A\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,A[i*N+j]);
-        }
-    }
-    printf("imprimo B\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,B[j*N+i]);
-        }
-    } */
+    7)  R = AB + CD
+    
+    Orden matrices:
+    -A: por filas
+    -B: por columnas
+    -C: por filas
+    -D: por columnas
+    -D2: por columas
+    -AB: por filas
+    -CD: por filas
+    -R: por filas */
 
     //EMPIEZA A CONTAR EL TIEMPO --------------------------------------
     tick = dwalltime();
@@ -117,24 +115,10 @@ int main(int argc, char *argv[]){
     promedioA=sumaA/cantElementos;
     promedioB=sumaB/cantElementos;
 
-/*     printf("imprimo AB\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,AB[i*N+j]);
-        }
-    }  */
-
     /* printf("maxA: %f, minA: %f:, sumaA: %f \n",maxA,minA,sumaA);
     printf("maxB: %f, minB: %f:, sumaB: %f \n",maxB,minB,sumaB); */
 
     //2) AB = A X B -> paralelo. Ta el create arriba
-
-    printf("imprimo D\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %i \n",i,j,D[i*N+j]);
-        }
-    }
 
     //3) D2= D^2 -> paralelo??
     for(i=1;i<=40;i++){
@@ -150,44 +134,51 @@ int main(int argc, char *argv[]){
         pthread_join(threads[i],NULL);
     }
 
+    printf("imprimo C\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,C[i*N+j]);
+        }
+    }
+
     printf("imprimo D2\n");
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,D2[i*N+j]);
+            printf("[%i][%i]= %0.0f\n",i,j,D2[j*N+i]);
         }
     }
 
-    //5) Calculo de RP -> secuencial
-    double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
-
-    //7)  R = AB + CD
-    printf("imprimo AB\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,AB[i*N+j]);
-        }
-    }
-        printf("imprimo CD\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,CD[i*N+j]);
-        }
-    }
-
+    //4) CD = C X D2
     for(i=0;i<cant_threads;i++){
         ids[i]=i;
-        pthread_create(&threads[i],&attr,sumar_AB_CD2,&ids[i]); //7)
+        pthread_create(&threads[i],&attr,mult_matricesCxD2,&ids[i]);
     }
 
     for(i=0;i<cant_threads;i++){
         pthread_join(threads[i],NULL);
     }
 
-    printf("imprimo R\n");
+    printf("imprimo CD\n");
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,R[i*N+j]);
+            printf("[%i][%i]= %0.0f\n",i,j,CD[i*N+j]);
         }
+    }
+
+    //5) Calculo de RP -> secuencial
+    double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
+
+    //6) AB = AB X RP(double)
+
+
+    //7) R = AB + CD
+    for(i=0;i<cant_threads;i++){
+        ids[i]=i;
+        pthread_create(&threads[i],&attr,sumar_AB_CD2,&ids[i]);
+    }
+
+    for(i=0;i<cant_threads;i++){
+        pthread_join(threads[i],NULL);
     }
 
     time = dwalltime() - tick;
@@ -204,7 +195,7 @@ int main(int argc, char *argv[]){
 
 // Codigo funciones ----------------------------------------------
 
-
+//PASO 1
 void * encontrar_valoresA(void * ptr){
     int *p,id,i,j;
     p=(int*) ptr;
@@ -230,6 +221,7 @@ void * encontrar_valoresA(void * ptr){
     pthread_exit(0);
 }
 
+//PASO 1
 void * encontrar_valoresB(void * ptr){
     int *p,id,i,j;
     p=(int*) ptr;
@@ -255,6 +247,7 @@ void * encontrar_valoresB(void * ptr){
     pthread_exit(0);
 }
 
+//PASO 2
 void * mult_matricesAxB(void * ptr){
     int *p,id,i,j,k;
     p=(int*) ptr;
@@ -273,6 +266,7 @@ void * mult_matricesAxB(void * ptr){
     pthread_exit(0);
 }
 
+//PASO 3
 void * potencia_D(void * ptr){
     int *p,i,j;
     p=(int*) ptr;
@@ -281,14 +275,34 @@ void * potencia_D(void * ptr){
     int ultima=primera+(N/cant_threads)-1;
     for(i=primera;i<=ultima;i++){
         for(j=0;j<N;j++){
-            int valor = D[i*N+j];
+            int valor = D[j*N+i];
             double v = resultados[valor];
-            D2[i*N+j] = v;
+            D2[j*N+i] = v; //ordenado por columna
         }
     }
     pthread_exit(0);
 }
 
+//PASO 4
+void * mult_matricesCxD2(void* ptr){
+    int *p,id,i,j,k;
+    p=(int*) ptr;
+    id=*p;
+    int primera=id*(N/cant_threads);
+    int ultima=primera+(N/cant_threads)-1;
+    for(i=primera; i<=ultima; i++){
+        for(j=0;j<N;j++){
+            double temp = 0; 
+            for(k=0;k<N;k++){
+                temp += C[i*N+k]*D2[j*N+k]; 
+            }
+            CD[i*N+j] += temp;
+        }
+    }
+    pthread_exit(0);
+}
+
+//Paso 7
 void * sumar_AB_CD2(void * ptr){
     int *p,id,i,j;
     p=(int*) ptr;
