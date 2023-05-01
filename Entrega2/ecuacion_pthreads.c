@@ -10,6 +10,7 @@ void * mult_matricesAxB(void* ptr);
 void * encontrar_valoresA(void* ptr);
 void * encontrar_valoresB(void* ptr);
 void * potencia_D(void* ptr);
+void * sumar_AB_CD2(void* ptr);
 
 
 //variables compartidas
@@ -159,6 +160,35 @@ int main(int argc, char *argv[]){
     //5) Calculo de RP -> secuencial
     double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
 
+    //7)  R = AB + CD
+    printf("imprimo AB\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,AB[i*N+j]);
+        }
+    }
+        printf("imprimo CD\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,CD[i*N+j]);
+        }
+    }
+
+    for(i=0;i<cant_threads;i++){
+        ids[i]=i;
+        pthread_create(&threads[i],&attr,sumar_AB_CD2,&ids[i]); //7)
+    }
+
+    for(i=0;i<cant_threads;i++){
+        pthread_join(threads[i],NULL);
+    }
+
+    printf("imprimo R\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,R[i*N+j]);
+        }
+    }
 
     time = dwalltime() - tick;
     printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f ",N,cant_threads,time);
@@ -259,6 +289,20 @@ void * potencia_D(void * ptr){
     pthread_exit(0);
 }
 
+void * sumar_AB_CD2(void * ptr){
+    int *p,id,i,j;
+    p=(int*) ptr;
+    id=*p;
+    int primera=id*(N/cant_threads);
+    int ultima=primera+(N/cant_threads)-1;
+    for(i=primera; i<=ultima; i++){
+        int valori = i*N;
+        for(j=0;j<N;j++){
+            R[valori+j] = AB[valori+j] + CD[valori+j];
+        }
+    }
+    pthread_exit(0);
+}
 
 double dwalltime(){
 	double sec;
