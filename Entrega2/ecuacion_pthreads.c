@@ -9,12 +9,14 @@ double dwalltime();
 void * mult_matricesAxB(void* ptr);
 void * encontrar_valoresA(void* ptr);
 void * encontrar_valoresB(void* ptr);
+void * potencia_D(void* ptr);
 
 
 //variables compartidas
 int N,cant_threads;
 double *A,*B,*C,*D2,*CD,*AB,*R;
 int *D;
+int resultados[40];
 double maxA,minA,maxB,minB,sumaA,sumaB;
 
 //mutexs
@@ -23,7 +25,7 @@ pthread_mutex_t acceder_var;
 
 int main(int argc, char *argv[]){
     double time,tick,promedioA,promedioB;
-    int i,j,k,cantElementos,resultados[40];
+    int i,j,k,cantElementos;
 
     //Verificar parametro 
     if ((argc != 3)){
@@ -83,7 +85,7 @@ int main(int argc, char *argv[]){
     6)  AB = RP x AB 
     7)  R = AB + CD2 */
 
-    printf("imprimo A\n");
+/*     printf("imprimo A\n");
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             printf("[%i][%i]= %0.0f\n",i,j,A[i*N+j]);
@@ -94,7 +96,7 @@ int main(int argc, char *argv[]){
         for(j=0;j<N;j++){
             printf("[%i][%i]= %0.0f\n",i,j,B[j*N+i]);
         }
-    }
+    } */
 
     //EMPIEZA A CONTAR EL TIEMPO --------------------------------------
     tick = dwalltime();
@@ -114,22 +116,44 @@ int main(int argc, char *argv[]){
     promedioA=sumaA/cantElementos;
     promedioB=sumaB/cantElementos;
 
-    printf("imprimo AB\n");
+/*     printf("imprimo AB\n");
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             printf("[%i][%i]= %0.0f\n",i,j,AB[i*N+j]);
         }
-    } 
+    }  */
 
     /* printf("maxA: %f, minA: %f:, sumaA: %f \n",maxA,minA,sumaA);
     printf("maxB: %f, minB: %f:, sumaB: %f \n",maxB,minB,sumaB); */
 
     //2) AB = A X B -> paralelo. Ta el create arriba
 
+    printf("imprimo D\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %i \n",i,j,D[i*N+j]);
+        }
+    }
 
     //3) D2= D^2 -> paralelo??
     for(i=1;i<=40;i++){
         resultados[i]= i*i;
+    }
+
+    for(i=0;i<cant_threads;i++){
+        ids[i]=i;
+        pthread_create(&threads[i],&attr,potencia_D,&ids[i]);
+    }
+
+    for(i=0;i<cant_threads;i++){
+        pthread_join(threads[i],NULL);
+    }
+
+    printf("imprimo D2\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,D2[i*N+j]);
+        }
     }
 
     //5) Calculo de RP -> secuencial
@@ -214,6 +238,22 @@ void * mult_matricesAxB(void * ptr){
                 temp += A[i*N+k]*B[j*N+k]; 
             }
             AB[i*N+j] += temp;
+        }
+    }
+    pthread_exit(0);
+}
+
+void * potencia_D(void * ptr){
+    int *p,i,j;
+    p=(int*) ptr;
+    int id=*p;
+    int primera=id*(N/cant_threads);
+    int ultima=primera+(N/cant_threads)-1;
+    for(i=primera;i<=ultima;i++){
+        for(j=0;j<N;j++){
+            int valor = D[i*N+j];
+            double v = resultados[valor];
+            D2[i*N+j] = v;
         }
     }
     pthread_exit(0);
