@@ -6,12 +6,16 @@
 
 double dwalltime();
 
+//variables compartidas
+double maxA,minA,maxB,minB,sumaA=0,sumaB=0;
+
+
 int main(int argc, char *argv[]){
     double time,tick,temp;
     int i,j,k,valori,valorj,cantElementos,resultados[40];
     double *A,*B,*C,*D2,*CD,*AB,*R;
     int *D;
-    double maxA,minA,maxB,minB,sumaA=0,sumaB=0,promedioA,promedioB;
+    double promedioA,promedioB;
 
     //Verificar parametro 
     if ((argc != 3)){
@@ -34,12 +38,6 @@ int main(int argc, char *argv[]){
     D2=(double*) malloc(N*N*sizeof(double));
 
 
-    // para los promedios
-    sumaA = 0; 
-    sumaB = 0;
-    maxA=A[0];
-    minA=A[0];
-
     //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
@@ -50,6 +48,12 @@ int main(int argc, char *argv[]){
             AB[i*N+j]=0;
         }
     }
+
+    // para los promedios
+    sumaA = 0; 
+    sumaB = 0;
+    maxA=A[0];
+    minA=A[0];
 
 
     /*  PASOS
@@ -70,15 +74,22 @@ int main(int argc, char *argv[]){
     //-------------------EMPIEZA A CONTAR EL TIEMPO----------------------------
     tick = dwalltime();
 
+/*     printf("imprimo A\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,A[i*N+j]);
+        }
+    } */
+
     //1) Calcular max,min y prom de A y B
-    #pragma omp parallel for default(none) shared(A) private(i,cantElementos) reduction(+:sumaA) reduction(max:maxA) reduction(min:minA)
+    #pragma omp parallel for default (none) shared(A) firstprivate(cantElementos) private(i) reduction(+:sumaA) reduction(min:minA) reduction(max:maxA)
     for(i=0;i<cantElementos;i++){
         sumaA+=A[i];
-        if(A[i]>maxA) maxA=A[i];
-        else if(A[i]<minA) minA=A[i]; 
+        if(A[i]>maxA) maxA=A[i]; 
+        else if(A[i]<minA) minA=A[i];
     }
     
-    printf("maxA: %f, minA: %f:, sumaA: %f \n",maxA,minA,sumaA);
+    printf("maxA: %f, minA: %f, sumaA: %f \n",maxA,minA,sumaA);
 
     //2) AB = A X B
     #pragma omp parallel for default(none) shared(A,B,AB,N) private(i,j,k,valori,valorj,temp)
@@ -91,13 +102,6 @@ int main(int argc, char *argv[]){
                 temp+=A[valori+k]*B[valorj+k];
             }
             AB[valori+j]+=temp;
-        }
-    }
-
-    printf("imprimo AB\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,AB[i*N+j]);
         }
     }
 
