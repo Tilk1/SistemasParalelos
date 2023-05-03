@@ -124,6 +124,7 @@ int main(int argc, char *argv[]){
 
     time = dwalltime() - tick;
     printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f \n",N,cant_threads,time);
+    printf("primera pos: %.0f y  ultima: %.0f ",R[0],R[N*N-1]);
     free(A);
     free(B);
     free(C);
@@ -263,26 +264,25 @@ void mult_matricesCxD2(int id){
 
 //PASO 6
 void multiplicacion_ABxRP(int id){
-    int i,j;
-    int primera=id*(N/cant_threads);
-    int ultima=primera+(N/cant_threads)-1;
-    for(i=primera; i<=ultima; i++){
-        for(j=0;j<N;j++){
-            AB[i*N+j] = AB[i*N+j]*RP;
-        }
+    int i, j;
+    int primera = id * (N / cant_threads);
+    int ultima = primera + (N / cant_threads) - 1;
+    int inicio = primera * N;
+    int fin = (ultima + 1) * N;
+    for (i = inicio; i < fin; i++) {
+        AB[i] = AB[i] * RP;
     }
 }
 
 //PASO 7
 void sumar_AB_CD(int id){
-    int i,j;
-    int primera=id*(N/cant_threads);
-    int ultima=primera+(N/cant_threads)-1;
-    for(i=primera; i<=ultima; i++){
-        int valori = i*N;
-        for(j=0;j<N;j++){
-            R[valori+j] = AB[valori+j] + CD[valori+j];
-        }
+    int i;
+    int primera = id * (N / cant_threads);
+    int ultima = primera + (N / cant_threads) - 1;
+    int inicio = primera * N;
+    int fin = (ultima + 1) * N;
+    for (i = inicio; i < fin; i++) {
+        R[i] = AB[i] + CD[i];
     }
 }
 
