@@ -7,13 +7,13 @@
 //Declaracion funciones
 double dwalltime();
 void * calcular_ecuacion(void* ptr);
-void * encontrar_valoresA(void* ptr);
-void * encontrar_valoresB(void* ptr);
-void * mult_matricesAxB(void* ptr);
-void * potencia_D(void* ptr);
-void * mult_matricesCxD2(void* ptr);
-void * sumar_AB_CD(void* ptr);
-void * multiplicacion_ABxRP(void* ptr);
+void encontrar_valoresA(int id);
+void encontrar_valoresB(int id);
+void mult_matricesAxB(int id);
+void potencia_D(int id);
+void mult_matricesCxD2(int id);
+void sumar_AB_CD(int id);
+void multiplicacion_ABxRP(int id);
 
 
 //variables compartidas
@@ -21,14 +21,14 @@ int N,cant_threads,cantElementos;
 double *A,*B,*C,*D2,*CD,*AB,*R;
 int *D;
 int resultados[41];
-double maxA,minA,maxB,minB,sumaA,sumaB;
+double maxA,minA,maxB,minB,sumaA,sumaB,promedioA,promedioB;
 double RP;
 
 //mutexs
 pthread_mutex_t acceder_var;
-pthread_barrier_t fin_buscar_valores;
-
-
+pthread_barrier_t barrera1;
+pthread_barrier_t barrera2;
+pthread_barrier_t barrera3;
 
 int main(int argc, char *argv[]){
     double time,tick,promedioA,promedioB;
@@ -76,7 +76,9 @@ int main(int argc, char *argv[]){
     minB=B[0];
 
     pthread_attr_init(&attr); //inicializar atributo
-    pthread_barrier_init(&fin_buscar_valores); //inicializar barrera
+    pthread_barrier_init(&barrera1,NULL,cant_threads); //inicializar barreras
+    pthread_barrier_init(&barrera2,NULL,cant_threads); 
+    pthread_barrier_init(&barrera3,NULL,cant_threads);
 
     /*  PASOS
 
@@ -112,7 +114,7 @@ int main(int argc, char *argv[]){
 
     for(i=0;i<cant_threads;i++){
         ids[i]=i;
-        pthread_create(&threads[i],&attr,calcular_ecuacion,&ids[i]); //1)
+        pthread_create(&threads[i],&attr,calcular_ecuacion,&ids[i]);
     }
 
     for(i=0;i<cant_threads;i++){
@@ -139,28 +141,26 @@ void * calcular_ecuacion(void * ptr){
     id=*p;
     encontrar_valoresA(id);
     encontrar_valoresB(id);
-    pthread_barrier_wait(fin_buscar_valores);
+    mult_matricesAxB(id);
+    potencia_D(id);
+    pthread_barrier_wait(&barrera1);
     if(id==0){
         promedioA=sumaA/cantElementos;
         promedioB=sumaB/cantElementos;
         RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
     }
-
-    mult_matricesAxB(id);
-    potencia_D(id);
-    //poner el mult_matrice
-
+    mult_matricesCxD2(id);
+    pthread_barrier_wait(&barrera2);
     multiplicacion_ABxRP(id);
-
-
-    
+    pthread_barrier_wait(&barrera3);
+    sumar_AB_CD(id);
+    pthread_exit(0);
 
 }
 
-
-
 //PASO 1
-void * encontrar_valoresA(int id){
+void encontrar_valoresA(int id){
+    int i,j;
     int primera=id*(N/cant_threads);
     int ultima=primera+(N/cant_threads)-1;
     double max=A[primera];
@@ -187,7 +187,8 @@ void * encontrar_valoresA(int id){
 }
 
 //PASO 1
-void * encontrar_valoresB(int id){
+void encontrar_valoresB(int id){
+    int i,j;
     int primera=id*(N/cant_threads);
     int ultima=primera+(N/cant_threads)-1;
     double max=B[primera];
@@ -214,7 +215,8 @@ void * encontrar_valoresB(int id){
 }
 
 //PASO 2
-void * mult_matricesAxB(int id){
+void mult_matricesAxB(int id){
+    int i,j,k;
     int primera=id*(N/cant_threads);
     int ultima=primera+(N/cant_threads)-1;
     for(i=primera; i<=ultima; i++){
@@ -230,10 +232,8 @@ void * mult_matricesAxB(int id){
 }
 
 //PASO 3
-void * potencia_D(void * ptr){
-    int *p,i,j;
-    p=(int*) ptr;
-    int id=*p;
+void potencia_D(int id){
+    int i,j;
     int primera=id*(N/cant_threads);
     int ultima=primera+(N/cant_threads)-1;
     for(i=primera;i<=ultima;i++){
@@ -247,10 +247,8 @@ void * potencia_D(void * ptr){
 }
 
 //PASO 4
-void * mult_matricesCxD2(void* ptr){
-    int *p,id,i,j,k;
-    p=(int*) ptr;
-    id=*p;
+void mult_matricesCxD2(int id){
+    int i,j,k;
     int primera=id*(N/cant_threads);
     int ultima=primera+(N/cant_threads)-1;
     for(i=primera; i<=ultima; i++){
@@ -266,10 +264,8 @@ void * mult_matricesCxD2(void* ptr){
 }
 
 //PASO 6
-void * multiplicacion_ABxRP(void * ptr){
-    int *p,id,i,j,k;
-    p=(int*) ptr;
-    id=*p;
+void multiplicacion_ABxRP(int id){
+    int i,j;
     int primera=id*(N/cant_threads);
     int ultima=primera+(N/cant_threads)-1;
     for(i=primera; i<=ultima; i++){
@@ -281,10 +277,8 @@ void * multiplicacion_ABxRP(void * ptr){
 }
 
 //PASO 7
-void * sumar_AB_CD(void * ptr){
-    int *p,id,i,j;
-    p=(int*) ptr;
-    id=*p;
+void sumar_AB_CD(int id){
+    int i,j;
     int primera=id*(N/cant_threads);
     int ultima=primera+(N/cant_threads)-1;
     for(i=primera; i<=ultima; i++){
