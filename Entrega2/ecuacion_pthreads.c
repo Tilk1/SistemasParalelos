@@ -25,14 +25,15 @@ double maxA,minA,maxB,minB,sumaA,sumaB,promedioA,promedioB;
 double RP;
 
 //mutexs
-pthread_mutex_t acceder_var;
+pthread_mutex_t acceder_varA;
+pthread_mutex_t acceder_varB;
 pthread_barrier_t barrera1;
 pthread_barrier_t barrera2;
 pthread_barrier_t barrera3;
 
 int main(int argc, char *argv[]){
-    double time,tick,promedioA,promedioB;
-    int i,j,k;
+    double time,tick;
+    int i,j;
 
     //Verificar parametro 
     if ((argc != 3)){
@@ -122,7 +123,7 @@ int main(int argc, char *argv[]){
     }
 
     time = dwalltime() - tick;
-    printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f ",N,cant_threads,time);
+    printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f \n",N,cant_threads,time);
     free(A);
     free(B);
     free(C);
@@ -131,6 +132,8 @@ int main(int argc, char *argv[]){
     free(CD);
     free(AB);
     free(D2);
+
+
 }
 
 // Codigo funciones ----------------------------------------------
@@ -147,7 +150,7 @@ void * calcular_ecuacion(void * ptr){
     if(id==0){
         promedioA=sumaA/cantElementos;
         promedioB=sumaB/cantElementos;
-        RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
+        RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB));
     }
     mult_matricesCxD2(id);
     pthread_barrier_wait(&barrera2);
@@ -176,14 +179,13 @@ void encontrar_valoresA(int id){
             suma+=A[pos];
         }
     }
-    pthread_mutex_lock(&acceder_var);
+    pthread_mutex_lock(&acceder_varA);
     if(max>maxA) 
         maxA=max;
     if(min<minA) 
         minA=min;
     sumaA+=suma;
-    pthread_mutex_unlock(&acceder_var);
-    pthread_exit(0);
+    pthread_mutex_unlock(&acceder_varA);
 }
 
 //PASO 1
@@ -204,14 +206,13 @@ void encontrar_valoresB(int id){
             suma+=B[pos];
         }
     }
-    pthread_mutex_lock(&acceder_var);
+    pthread_mutex_lock(&acceder_varB);
     if(max>maxB) 
         maxB=max;
     if(min<minB) 
         minB=min;
     sumaB+=suma;
-    pthread_mutex_unlock(&acceder_var);
-    pthread_exit(0);
+    pthread_mutex_unlock(&acceder_varB);
 }
 
 //PASO 2
@@ -228,7 +229,6 @@ void mult_matricesAxB(int id){
             AB[i*N+j] += temp;
         }
     }
-    pthread_exit(0);
 }
 
 //PASO 3
@@ -243,7 +243,6 @@ void potencia_D(int id){
             D2[j*N+i] = v; //ordenado por columna
         }
     }
-    pthread_exit(0);
 }
 
 //PASO 4
@@ -260,7 +259,6 @@ void mult_matricesCxD2(int id){
             CD[i*N+j] += temp;
         }
     }
-    pthread_exit(0);
 }
 
 //PASO 6
@@ -270,10 +268,9 @@ void multiplicacion_ABxRP(int id){
     int ultima=primera+(N/cant_threads)-1;
     for(i=primera; i<=ultima; i++){
         for(j=0;j<N;j++){
-            AB[i*N+j] = (double)AB[i*N+j]*RP;
+            AB[i*N+j] = AB[i*N+j]*RP;
         }
     }
-    pthread_exit(0);
 }
 
 //PASO 7
@@ -287,7 +284,6 @@ void sumar_AB_CD(int id){
             R[valori+j] = AB[valori+j] + CD[valori+j];
         }
     }
-    pthread_exit(0);
 }
 
 double dwalltime(){
