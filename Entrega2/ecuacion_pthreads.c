@@ -15,9 +15,11 @@ void mult_matricesCxD2(int id);
 void sumar_AB_CD(int id);
 void multiplicacion_ABxRP(int id);
 
+void mult_bloques(double *ablk, double *bblk, double *cblk);
+
 
 //variables compartidas
-int N,cant_threads,cantElementos;
+int N,cant_threads,cantElementos,tam_bloque;
 double *A,*B,*C,*D2,*CD,*AB,*R;
 int *D;
 int resultados[41];
@@ -36,13 +38,15 @@ int main(int argc, char *argv[]){
     int i,j;
 
     //Verificar parametro 
-    if ((argc != 3)){
-        printf("Param1: N - Param2: cantidad threads \n");
+    if ((argc != 4)){
+        printf("Param1: N - Param2: cantidad threads - Param2: tamanio bloque\n");
         exit(1);
     }
     N = atoi(argv[1]);
     cant_threads = atoi(argv[2]);
+    tam_bloque = atoi(argv[3]);
     cantElementos = N*N;
+
     pthread_attr_t attr;
     int ids[cant_threads]; //para guardar el id de cada thread 
     pthread_t threads[cant_threads]; //declaracion de los threads
@@ -124,7 +128,6 @@ int main(int argc, char *argv[]){
 
     time = dwalltime() - tick;
     printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f \n",N,cant_threads,time);
-    printf("primera pos: %.0f y  ultima: %.0f ",R[0],R[N*N-1]);
     free(A);
     free(B);
     free(C);
@@ -148,7 +151,7 @@ void * calcular_ecuacion(void * ptr){
     mult_matricesAxB(id);
     potencia_D(id);
     pthread_barrier_wait(&barrera1);
-    if(id==0){
+    if(id==0){ //otra forma de resolver esto?
         promedioA=sumaA/cantElementos;
         promedioB=sumaB/cantElementos;
         RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB));
@@ -221,16 +224,20 @@ void mult_matricesAxB(int id){
     int i,j,k;
     int primera=id*(N/cant_threads);
     int ultima=primera+(N/cant_threads)-1;
-    for(i=primera; i<=ultima; i++){
-        for(j=0;j<N;j++){
-            double temp = 0; 
-            for(k=0;k<N;k++){
-                temp += A[i*N+k]*B[j*N+k]; 
+    for(i=primera; i<=ultima; i+=tam_bloque){
+        int valori=i*N;
+        for(j=0;j<N;j+=tam_bloque){
+            int valorj=j*N;
+            for(k=0;k<N;k+=tam_bloque){
+                mult_bloques(&A[valori+k], &B[valorj+k], &AB[valori+j]);
             }
-            AB[i*N+j] += temp;
         }
     }
+    //podria cada bloque calcularlo otro thread??
+    //no tiene sentido usar una funcion, mejor los 6 fors, porque no puedo
+    //pasar como parametro las matrices (el codigo de cada mult va a ser diferente)
 }
+
 
 //PASO 3
 void potencia_D(int id){
@@ -251,13 +258,13 @@ void mult_matricesCxD2(int id){
     int i,j,k;
     int primera=id*(N/cant_threads);
     int ultima=primera+(N/cant_threads)-1;
-    for(i=primera; i<=ultima; i++){
-        for(j=0;j<N;j++){
-            double temp = 0; 
-            for(k=0;k<N;k++){
-                temp += C[i*N+k]*D2[j*N+k]; 
+    for(i=primera; i<=ultima; i+=tam_bloque){
+        int valori=i*N;
+        for(j=0;j<N;j+=tam_bloque){
+            int valorj=j*N;
+            for(k=0;k<N;k+=tam_bloque){
+                mult_bloques(&C[valori+k], &D2[valorj+k], &CD[valori+j]);
             }
-            CD[i*N+j] += temp;
         }
     }
 }
@@ -283,6 +290,22 @@ void sumar_AB_CD(int id){
     int fin = (ultima + 1) * N;
     for (i = inicio; i < fin; i++) {
         R[i] = AB[i] + CD[i];
+    }
+}
+
+//Multiplicacion de cada bloque
+void mult_bloques(double *ablk, double *bblk, double *cblk){
+    int i,j,k; 
+    for(i=0;i<tam_bloque;i++){
+        int valori=i*N;
+        for(j=0;j<tam_bloque;j++){
+            double temp=0;
+            int valorj=j*N;
+            for(k=0;k<tam_bloque;k++){
+                temp+=ablk[valori+k]*bblk[valorj+k];
+            }
+            cblk[valori+j]+=temp;
+        }
     }
 }
 
