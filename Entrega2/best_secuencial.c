@@ -174,7 +174,7 @@ void mult_bloques(double *ablk, double *bblk, double *cblk, int N, int bs){
     for(i = 0; i < bs; i++){
         int valori=i*N;
         for(j = 0; j < bs; j++){
-            int temp=0;
+            double temp=0;
             int valorj=j*N;
             for(k = 0; k < bs; k++){
                 temp += ablk[valori+k] * bblk[valorj+k];
