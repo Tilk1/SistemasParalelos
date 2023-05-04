@@ -81,13 +81,12 @@ int main(int argc, char *argv[]){
     sumaA=0;
     sumaB=0;
     tick = dwalltime();
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            int pos=i*N+j;
-            if(A[pos] > maxA) maxA=A[pos];
-            else if(A[pos] < minA) minA=A[pos];
-            sumaA+=A[pos];
-        }
+    for(int i = 0; i < N*N; i++){
+        if(A[i] > maxA) 
+            maxA = A[i];
+        if(A[i] < minA) 
+            minA = A[i];
+        sumaA += A[i];
     }
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
@@ -124,17 +123,13 @@ int main(int argc, char *argv[]){
     double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
 
     //6) AB = AB x RP 
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            AB[i*N+j] = AB[i*N+j]*RP;
-        }
+    for (int i = 0; i < N*N; i++) {
+        AB[i] = AB[i]*RP;
     }
 
     //AB + CD = R
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < N; j++) {
-            R[i*N+j] = AB[i*N+j] + CD[i*N+j];
-        }
+    for (int i = 0; i < N*N; i++) {
+        R[i] = AB[i] + CD[i];
     }
 
     timeTotal = dwalltime() - tick;
