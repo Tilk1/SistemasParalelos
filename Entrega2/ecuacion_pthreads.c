@@ -167,21 +167,20 @@ void * calcular_ecuacion(void * ptr){
 
 //PASO 1
 void encontrar_valoresA(int id){
-    int i,j;
-    int primera=id*(N/cant_threads);
-    int ultima=primera+(N/cant_threads)-1;
+    int i;
+    int primera = id * (N / cant_threads);
+    int ultima = primera + (N / cant_threads) - 1;
+    int inicio = primera * N;
+    int fin = (ultima + 1) * N;
     double max=A[primera];
     double min=A[primera];
     double suma=0;
-    for(i=primera; i<=ultima; i++){
-        for(j=0;j<N;j++){
-            int pos=i*N+j;
-            if(A[pos] > max) 
-                max=A[pos];
-            else if(A[pos] < min) 
-                min=A[pos];
-            suma+=A[pos];
-        }
+    for (i = inicio; i < fin; i++) {
+        if(A[i] > max) 
+            max=A[i];
+        else if(A[i] < min) 
+            min=A[i];
+        suma+=A[i];
     }
     pthread_mutex_lock(&acceder_varA);
     if(max>maxA) 
