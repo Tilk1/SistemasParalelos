@@ -19,7 +19,7 @@ static inline void mult_bloques(double *ablk, double *bblk, double *cblk);
 
 
 //variables compartidas
-int N,cant_threads,cantElementos,tam_bloque;
+int N,cant_threads,cantElementos,tam_bloque,check=1;
 double *A,*B,*C,*D2,*CD,*AB,*R;
 int *D;
 int resultados[41];
@@ -62,10 +62,10 @@ int main(int argc, char *argv[]){
     //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j]=rand()%100+1; //Ordenada por Filas
-            B[j*N+i]=rand()%100+1; //Ordenada por Columnas
-            C[i*N+j]=rand()%40+1; //Ordenada Por Filas
-            D[j*N+i]=rand()%40+1; //Ordenada por Columnas 1..40
+            A[i*N+j]=1; //Ordenada por Filas
+            B[j*N+i]=1; //Ordenada por Columnas
+            C[i*N+j]=1; //Ordenada Por Filas
+            D[j*N+i]=1; //Ordenada por Columnas 1..40
         }
     }
 
@@ -122,7 +122,18 @@ int main(int argc, char *argv[]){
     }
 
     time = dwalltime() - tick;
-    printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f \n",N,cant_threads,time);
+
+    //Corrobar resultado
+    for(i=0;i<N;i++){
+	    check=check&&(R[i]==N);
+    }   
+
+    if(check){
+        printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f \n",N,cant_threads,time);
+    }else{
+        printf("Multiplicacion de matrices resultado erroneo\n");
+    }
+    
     free(A);
     free(B);
     free(C);
