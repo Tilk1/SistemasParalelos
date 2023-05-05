@@ -125,7 +125,7 @@ int main(int argc, char *argv[]){
     printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f \n",N,cant_threads,time);
 
     //Corrobar resultado
-    for(i=0;i<N;i++){
+    for(i=0;i<N*N;i++){
 	    check=check&&(R[i]==N);
     }   
 
@@ -157,8 +157,8 @@ void * calcular_ecuacion(void * ptr){
     encontrar_valoresA(id);
     encontrar_valoresB(id);
     mult_matricesAxB(id);
-    pthread_barrier_wait(&barrera);
     potencia_D(id);
+    pthread_barrier_wait(&barrera);
     //lo calculan todos los threads
     promedioA=sumaA/cantElementos;
     promedioB=sumaB/cantElementos;
