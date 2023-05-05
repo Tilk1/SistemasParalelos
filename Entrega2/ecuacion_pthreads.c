@@ -122,6 +122,7 @@ int main(int argc, char *argv[]){
     }
 
     time = dwalltime() - tick;
+    printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f \n",N,cant_threads,time);
 
     //Corrobar resultado
     for(i=0;i<N;i++){
@@ -129,9 +130,9 @@ int main(int argc, char *argv[]){
     }   
 
     if(check){
-        printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f \n",N,cant_threads,time);
+        printf("Calculo de la ecuacion correcto :) \n");
     }else{
-        printf("Multiplicacion de matrices resultado erroneo\n");
+        printf("Calculo de la ecuacion erroneo \n");
     }
     
     free(A);

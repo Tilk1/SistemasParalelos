@@ -15,7 +15,7 @@ int main(int argc, char *argv[]){
     double *D2,*CD,*AB;
     int *D;
     double timeTotal,tick,maxA,minA,maxB,minB;
-    int i,j,k,l,N,tam_bloque, resultados[41];
+    int i,j,k,l,N,tam_bloque,resultados[41],check=1;
 
     // para los promedios
     double sumaA = 0; 
@@ -47,10 +47,10 @@ int main(int argc, char *argv[]){
     //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j]=rand()%10+1; //Ordenada por Filas
-            B[j*N+i]=rand()%10+1; //Ordenada por Columnas
+            A[i*N+j]=1; //Ordenada por Filas
+            B[j*N+i]=1; //Ordenada por Columnas
             C[i*N+j]=1; //Ordenada Por Filas
-            D[j*N+i]=rand()%40+1; //Ordenada por Columnas 1..40
+            D[j*N+i]=1; //Ordenada por Columnas 1..40
         }
     }
 
@@ -139,6 +139,17 @@ int main(int argc, char *argv[]){
     printf("tam_bloque: %d\n",tam_bloque);
     printf("Tiempo requerido total de la ecuacion: %f\n",timeTotal);
     imprimir_fecha_hora_actual();
+
+    //Corrobar resultado
+    for(i=0;i<N;i++){
+	    check=check&&(R[i]==N);
+    }   
+
+    if(check){
+        printf("Calculo de la ecuacion correcto :) \n");
+    }else{
+        printf("Calculo de la ecuacion erroneo \n");
+    }
 
     free(A);
     free(B);
