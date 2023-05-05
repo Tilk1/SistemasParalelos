@@ -110,16 +110,16 @@ int main(int argc, char *argv[]){
     //3) D2 = D^2 (ordenado x columnas), D2 es double, deja de ser int
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            int valor = D[i*N+j];
+            int valor = D[j*N+i];
             double v = resultados[valor];
-            D2[i*N+j] = v;
+            D2[j*N+i] = v;
         }
     }
 
     //4) C x D2 = CD(ordenado x filas)
     mult_matrices(C,D2,CD,N,tam_bloque);
     
-    //5) calculo de la primera parte de la ecuacion
+    //5) Calculo de la primera parte de la ecuacion
     double RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
 
     //6) AB = AB x RP 
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]){
         AB[i] = AB[i]*RP;
     }
 
-    //AB + CD = R
+    //7) AB + CD = R
     for (int i = 0; i < N*N; i++) {
         R[i] = AB[i] + CD[i];
     }
@@ -188,9 +188,9 @@ void imprimir_fecha_hora_actual() {
 }
 
 double dwalltime(){
-        double sec;
-        struct timeval tv;
-        gettimeofday(&tv,NULL);
-        sec = tv.tv_sec + tv.tv_usec/1000000.0;
-        return sec;
+    double sec;
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    sec = tv.tv_sec + tv.tv_usec/1000000.0;
+    return sec;
 }
