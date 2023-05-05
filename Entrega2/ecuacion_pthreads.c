@@ -36,12 +36,12 @@ int main(int argc, char *argv[]){
 
     //Verificar parametro 
     if ((argc != 4)){
-        printf("Param1: N - Param2: cantidad threads - Param2: tamanio bloque\n");
+        printf("Param1: N - Param2: tamanio bloque - Param3:cantidad threads\n");
         exit(1);
     }
     N = atoi(argv[1]);
-    cant_threads = atoi(argv[2]);
-    tam_bloque = atoi(argv[3]);
+    tam_bloque = atoi(argv[2]);
+    cant_threads = atoi(argv[3]);
     cantElementos = N*N;
 
     pthread_attr_t attr;
