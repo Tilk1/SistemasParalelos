@@ -74,36 +74,49 @@ int main(int argc, char *argv[]){
     //-------------------EMPIEZA A CONTAR EL TIEMPO----------------------------
     tick = dwalltime();
 
-/*     printf("imprimo A\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,A[i*N+j]);
-        }
-    } */
+    for(i=1;i<=40;i++){ // se hace secuencial
+        resultados[i]= i*i;
+    }
 
-    //1) Calcular max,min y prom de A y B
-    #pragma omp parallel for default (none) shared(A) firstprivate(cantElementos) private(i) reduction(+:sumaA) reduction(min:minA) reduction(max:maxA)
-    for(i=0;i<cantElementos;i++){
-        sumaA+=A[i];
-        if(A[i]>maxA) maxA=A[i]; 
-        else if(A[i]<minA) minA=A[i];
+    #pragma omp parallel shared(A,B,C,D,D2,AB,CD,R)
+    {
+        #pragma omp for firstprivate(cantElementos) private(i) reduction(+:sumaA) reduction(min:minA) reduction(max:maxA)
+        for(i=0;i<cantElementos;i++){
+            sumaA+=A[i];
+            if(A[i]>maxA) maxA=A[i]; 
+            else if(A[i]<minA) minA=A[i];
+        }
+
+        #pragma omp for //arreglar poner por bloques y poner NO WAIT donde corresponda
+        for(i=0;i<N;i++){
+            valori=i*N;
+            for(j=0;j<N;j++){
+                temp=0;
+                valorj=j*N;
+                for(k=0;k<N;k++){
+                    temp+=A[valori+k]*B[valorj+k];
+                }
+                AB[valori+j]+=temp;
+            }   
+        }
+
+        #pragma omp for
+        for(i=0;i<N;i++){
+            for(j=0;j<N;j++){
+                int valor = D[j*N+i];
+                double v = resultados[valor];
+                D2[j*N+i] = v; //ordenado por columna
+            }
+        }
+
+        
+    
+    
+    
     }
     
     printf("maxA: %f, minA: %f, sumaA: %f \n",maxA,minA,sumaA);
 
-    //2) AB = A X B
-    #pragma omp parallel for default(none) shared(A,B,AB,N) private(i,j,k,valori,valorj,temp)
-    for(i=0;i<N;i++){
-        valori=i*N;
-        for(j=0;j<N;j++){
-            temp=0;
-            valorj=j*N;
-            for(k=0;k<N;k++){
-                temp+=A[valori+k]*B[valorj+k];
-            }
-            AB[valori+j]+=temp;
-        }
-    }
 
     //3)D2 = D^2
 
