@@ -141,7 +141,7 @@ int main(int argc, char *argv[]){
     imprimir_fecha_hora_actual();
 
     //Corrobar resultado
-    for(i=0;i<N;i++){
+    for(i=0;i<N*N;i++){
 	    check=check&&(R[i]==N);
     }   
 
