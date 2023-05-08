@@ -91,17 +91,17 @@ int main(int argc, char *argv[]){
         resultados[i]= i*i;
     }
 
-    #pragma omp parallel shared(A,B,C,D,D2,AB,CD,R)
+    #pragma omp parallel shared(A,B,C,D,D2,AB,CD,R) 
     {
         //1) Buscar max,min y suma de A y B
-        #pragma omp for nowait firstprivate(cantElementos) private(i) reduction(+:sumaA) reduction(min:minA) reduction(max:maxA)
+        #pragma omp for nowait firstprivate(cantElementos) private(i) reduction(+:sumaA) reduction(min:minA) reduction(max:maxA) schedule(static)
         for(i=0;i<cantElementos;i++){
             sumaA+=A[i];
             if(A[i]>maxA) maxA=A[i]; 
             else if(A[i]<minA) minA=A[i];
         }
 
-        #pragma omp for firstprivate(cantElementos) private(i) reduction(+:sumaB) reduction(min:minB) reduction(max:maxB)
+        #pragma omp for firstprivate(cantElementos) private(i) reduction(+:sumaB) reduction(min:minB) reduction(max:maxB) schedule(static)
         for(i=0;i<cantElementos;i++){
             sumaB+=A[i];
             if(B[i]>maxB) maxB=B[i]; 
@@ -116,11 +116,11 @@ int main(int argc, char *argv[]){
             promedioA=sumaA/cantElementos;
             promedioB=sumaB/cantElementos;
             RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
-            printf("RP:%f",RP);
+            printf("RP:%f\n",RP);
         }
 
         //3) AB = A x B
-        #pragma omp for nowait
+        #pragma omp for nowait schedule(static)
         for(i=0;i<N;i+=tam_bloque){
             int valori=i*N;
             for(j=0;j<N;j+=tam_bloque){
@@ -132,7 +132,7 @@ int main(int argc, char *argv[]){
         }
 
         //4) D2 = D^2
-        #pragma omp for
+        #pragma omp for schedule(static)
         for(i=0;i<N;i++){
             for(j=0;j<N;j++){
                 int valor = D[j*N+i];
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]){
         }
 
         //5) CD = C x D2
-        #pragma omp for nowait
+        #pragma omp for nowait schedule(static)
         for(i=0;i<N;i+=tam_bloque){
             int valori=i*N;
             for(j=0;j<N;j+=tam_bloque){
@@ -155,13 +155,13 @@ int main(int argc, char *argv[]){
 
 
         //6) AB = AB * RP
-        #pragma omp for
+        #pragma omp for nowait schedule(static)
         for (i=0;i<N*N;i++) {
             AB[i] = AB[i]*RP;
         }
 
         //7) R = AB + CD
-        #pragma omp for nowait
+        #pragma omp for nowait schedule(static)
         for (i=0;i<N*N;i++) {
             R[i] = AB[i] + CD[i];
         }
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]){
 
     time = dwalltime() - tick;
     //-----------------------TERMINA CONTAR TIEMPO--------------------------
-    printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f ",N,numThreads,time);
+    printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f \n",N,numThreads,time);
     //Corrobar resultado
     for(i=0;i<N*N;i++){
 	    check=check&&(R[i]==N);
@@ -182,6 +182,13 @@ int main(int argc, char *argv[]){
     }else{
         printf("Calculo de la ecuacion erroneo \n");
     }
+
+/*      printf("imprimo R\n");
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            printf("[%i][%i]= %0.0f\n",i,j,R[i*N+j]);
+        }
+    } */
     
     free(A);
     free(B);
