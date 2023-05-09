@@ -43,10 +43,10 @@ int main(int argc, char *argv[]){
     //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j]=1; //Ordenada por Filas
-            B[j*N+i]=1; //Ordenada por Columnas
-            C[i*N+j]=1; //Ordenada Por Filas
-            D[j*N+i]=1; //Ordenada por Columnas 1..40
+            A[i*N+j]=i; //Ordenada por Filas
+            B[j*N+i]=j; //Ordenada por Columnas
+            C[i*N+j]=2; //Ordenada Por Filas
+            D[j*N+i]=4; //Ordenada por Columnas 1..40
         }
     }
 
@@ -94,14 +94,14 @@ int main(int argc, char *argv[]){
     #pragma omp parallel shared(A,B,C,D,D2,AB,CD,R) 
     {
         //1) Buscar max,min y suma de A y B
-        #pragma omp for nowait firstprivate(cantElementos) private(i) reduction(+:sumaA) reduction(min:minA) reduction(max:maxA) schedule(static)
+        #pragma omp for nowait reduction(+:sumaA) reduction(min:minA) reduction(max:maxA) schedule(static)
         for(i=0;i<cantElementos;i++){
             sumaA+=A[i];
             if(A[i]>maxA) maxA=A[i]; 
             else if(A[i]<minA) minA=A[i];
         }
 
-        #pragma omp for firstprivate(cantElementos) private(i) reduction(+:sumaB) reduction(min:minB) reduction(max:maxB) schedule(static)
+        #pragma omp for reduction(+:sumaB) reduction(min:minB) reduction(max:maxB) schedule(static)
         for(i=0;i<cantElementos;i++){
             sumaB+=A[i];
             if(B[i]>maxB) maxB=B[i]; 
@@ -111,13 +111,11 @@ int main(int argc, char *argv[]){
         //2) calcular RP
         #pragma omp single
         {
-            printf("maxA: %f, minA: %f, sumaA: %f \n",maxA,minA,sumaA);
-            printf("maxB: %f, minB: %f, sumaB: %f \n",maxB,minB,sumaB);
             promedioA=sumaA/cantElementos;
             promedioB=sumaB/cantElementos;
             RP = ((maxA * maxB - minA * minB) / (promedioA * promedioB)); //RP es un solo numero
-            printf("RP:%f\n",RP);
         }
+
 
         //3) AB = A x B
         #pragma omp for nowait schedule(static)
@@ -182,13 +180,6 @@ int main(int argc, char *argv[]){
     }else{
         printf("Calculo de la ecuacion erroneo \n");
     }
-
-/*      printf("imprimo R\n");
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            printf("[%i][%i]= %0.0f\n",i,j,R[i*N+j]);
-        }
-    } */
     
     free(A);
     free(B);
