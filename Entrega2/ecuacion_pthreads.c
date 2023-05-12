@@ -65,7 +65,7 @@ int main(int argc, char *argv[]){
             A[i*N+j]=1; //Ordenada por Filas
             B[j*N+i]=1; //Ordenada por Columnas
             C[i*N+j]=1; //Ordenada Por Filas
-            D[j*N+i]=1; //Ordenada por Columnas 1..40
+            D[j*N+i]=1; //Ordenada por Columnas - Para que tenga un valor aleatorio poner: rand()%40+1; 
         }
     }
 
