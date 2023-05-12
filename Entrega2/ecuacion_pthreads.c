@@ -122,6 +122,7 @@ int main(int argc, char *argv[]){
     }
 
     time = dwalltime() - tick;
+    printf("Algoritmo con Pthread\n");
     printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f \n",N,cant_threads,time);
 
     //Corrobar resultado

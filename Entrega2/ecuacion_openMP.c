@@ -43,10 +43,10 @@ int main(int argc, char *argv[]){
     //Inicializar matrices
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
-            A[i*N+j]=i; //Ordenada por Filas
-            B[j*N+i]=j; //Ordenada por Columnas
-            C[i*N+j]=2; //Ordenada Por Filas
-            D[j*N+i]=4; //Ordenada por Columnas 1..40
+            A[i*N+j]=1; //Ordenada por Filas
+            B[j*N+i]=1; //Ordenada por Columnas
+            C[i*N+j]=1; //Ordenada Por Filas
+            D[j*N+i]=1; //Ordenada por Columnas 1..40 - Para que tenga un valor aleatorio poner: rand()%40+1;
         }
     }
 
@@ -169,6 +169,7 @@ int main(int argc, char *argv[]){
 
     time = dwalltime() - tick;
     //-----------------------TERMINA CONTAR TIEMPO--------------------------
+    printf("Algoritmo con OpenMP\n");
     printf("El tiempo total de la ecuacion con N:%i y %i threads es: %f \n",N,numThreads,time);
     //Corrobar resultado
     for(i=0;i<N*N;i++){
