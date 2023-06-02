@@ -1,28 +1,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
+#include <time.h>
 #define COORDINATOR 0
 
+static inline void encontrar_valores(double *A, double *B, int stripSize,double *mins,double *maxs,double *sumas);
 static inline void mult_matrices(double *A, double *B, double *C, int stripSize, int tam_bloque, int N);
 static inline void mult_bloques(double *ablk, double *bblk, double *cblk, int tam_bloque, int N);
-static inline void potencia_D(int *D,double *D2,int stripSize, double *resultados);
-static inline void sumar_matrices(double *AB, double *CD, double *R, int stripSize, int N);
-
+static inline void potencia_D(int *D, double *D2, int stripSize, int N,double *resultados);
+static inline void sumar_AB_CD(double *AB, double *CD, double *R, int stripSize, int N);
+static inline void multiplicacion_ABxRP(double *AB,double RP, int stripSize, int N);
 
 int main(int argc, char* argv[]){
 	int i,j,k,cantProcesos,rank,N,stripSize,tam_bloque,check=1;
-	double *A,*B,*C,*D2,*CD,*AB,*R;
+    double promedioA, promedioB,RP;
+	double *A,*B,*C,*D2,*CD,*AB,*R,*resultados;
     int *D;
-    int *resultados[41];
 	MPI_Status status;
-	double commTimes[4], maxCommTimes[4], minCommTimes[4], commTime, totalTime;
+	double commTimes[7], maxCommTimes[7], minCommTimes[7], commTime, totalTime;
+
+    MPI_Init(&argc,&argv);
 
     if(argc != 3){
 	    printf("Param1: tamanio matriz - Param2: tamanio bloque: \n");
 		exit(1);
 	}
 	tam_bloque=atoi(argv[2]);
-	MPI_Init(&argc,&argv);
 	MPI_Comm_size(MPI_COMM_WORLD,&cantProcesos);
 	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
@@ -63,21 +66,19 @@ int main(int argc, char* argv[]){
 	if (rank == COORDINATOR) {
 		A = (double*) malloc(sizeof(double)*N*N);
 		C = (double*) malloc(sizeof(double)*N*N);
+        D = (int*) malloc(sizeof(int)*N*N);
         R = (double*) malloc(sizeof(double)*N*N);
+        resultados = (double*) malloc(sizeof(double)*41);
  
-	}
-	else  {
+	} else {
 		A = (double*) malloc(sizeof(double)*N*stripSize);
 		C = (double*) malloc(sizeof(double)*N*stripSize);
         R = (double*) malloc(sizeof(double)*N*stripSize);
+        AB = (double*) malloc(sizeof(double)*N*stripSize); 
+        CD = (double*) malloc(sizeof(double)*N*stripSize);
 	}
-
     B = (double*) malloc(sizeof(double)*N*N);
-    D = (int*) malloc(sizeof(int)*N*N);
-    D2 = (double*) malloc(sizeof(double)*N*N);
-    AB = (double*) malloc(sizeof(double)*N*N);
-    CD = (double*) malloc(sizeof(double)*N*N);
-    resultados = (double*) malloc(sizeof(double)*41);
+    D2 = (double*) malloc(sizeof(double)*N*N); 
 
     //Inicializar datos
 	if(rank == COORDINATOR){
@@ -87,62 +88,121 @@ int main(int argc, char* argv[]){
                 B[j*N+i]=1;
                 C[i*N+j]=1;
                 D[j*N+i]=1;
-
             }
         }
 	}
-    
+
+    //Pos 0 -> min, max y suma de A
+    //Pos 1 -> min, max y suma de B
+    double mins[2],maxs[2],sumas[2];
+    double minsR[2],maxsR[2],sumasR[2];
+    mins[0]=A[0]; maxs[0]=A[0]; sumas[0]=0;
+    mins[1]=B[0]; maxs[1]=B[0]; sumas[1]=0;
+
     //Espero a que el coordinador inicialice
     MPI_Barrier(MPI_COMM_WORLD);
 
-    //DONDE INICIALIZAR VECTOR DE 40?
-    for(i=1;i<=40;i++){ // se hace secuencial
-        resultados[i]= i*i;
+    commTimes[0] = MPI_Wtime();
+
+    if(rank==COORDINATOR){
+        for(i=1;i<=40;i++){ //Lo realiza solo el Coordinador
+            resultados[i]= i*i;
+        }
+        potencia_D(D,D2,stripSize,N,resultados);
     }
 
-    commTimes[0] = MPI_Wtime();
+    commTimes[1] = MPI_Wtime();
+    printf("CommTimes0: %f, commTimes1: %f \n",commTimes[0],commTimes[1]);
 
     //Distribuyo los datos
 	MPI_Scatter(A,stripSize*N,MPI_DOUBLE,A,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
     MPI_Scatter(C,stripSize*N,MPI_DOUBLE,C,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-
 	MPI_Bcast(B,N*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-    MPI_Bcast(D,N*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+    MPI_Bcast(D2,N*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
 
-    commTimes[1] = MPI_Wtime();
+    commTimes[2] = MPI_Wtime();
 
-    mult_matrices(A,B,AB,stripSize,tam_bloque,N);
-    potencia_D(D,D2,stripSize);
-	mult_matrices(C,D2,CD,stripSize,tam_bloque,N);
-    sumar_matrices(AB,CD,R,stripSize,N);
-
+    encontrar_valores(A,B,stripSize,mins,maxs,sumas);
     
-    MPI_Reduce(commTimes, minCommTimes, 4, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(commTimes, maxCommTimes, 4, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Finalize();
-	if (rank==COORDINATOR) {
+    commTimes[3] = MPI_Wtime();
+
+    MPI_Allreduce(mins,minsR,2,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+    MPI_Allreduce(maxs,maxsR,2,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(sumas,sumasR,2,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+
+    commTimes[4] = MPI_Wtime();
+
+    promedioA=sumasR[0]/N;
+    promedioB=sumasR[1]/N;
+    RP = ((maxsR[0] * maxsR[1] - minsR[0] * minsR[1]) / (promedioA * promedioB));
+    mult_matrices(A,B,AB,stripSize,tam_bloque,N);
+    mult_matrices(C,D2,CD,stripSize,tam_bloque,N);
+    multiplicacion_ABxRP(AB,RP,stripSize,N);
+    sumar_AB_CD(AB,CD,R,stripSize,N);
+
+    commTimes[5] = MPI_Wtime();
+
+    MPI_Gather(R,stripSize*N,MPI_DOUBLE,R,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+    
+    commTimes[6] = MPI_Wtime();
+
+    MPI_Reduce(commTimes, minCommTimes, 7, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Reduce(commTimes, maxCommTimes, 7, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
+	
+
+    if(rank==COORDINATOR) {
 		for(i=0;i<N;i++){
 			for(j=0;j<N;j++){
-				check=check&&(R[i*N+j]==3*N);
+				check=check&&(R[i*N+j]==N);
 			}
 		}
+        if(check){
+            printf("Multiplicacion de matrices resultado correcto\n");
+        }else{
+            printf("Multiplicacion de matrices resultado erroneo\n");
+        }
+        totalTime = maxCommTimes[6] - minCommTimes[0];
+	    commTime = (maxCommTimes[2] - minCommTimes[1]) + (maxCommTimes[4] - minCommTimes[3]) + (maxCommTimes[6] - minCommTimes[5]);
+        printf("Tiempo total=%lf, Tiempo comunicacion=%lf, Tiempo computo=%lf\n",totalTime,commTime,totalTime-commTime);
     }
-	if(check){
-		printf("Multiplicacion de matrices resultado correcto\n");
-	}else{
-		printf("Multiplicacion de matrices resultado erroneo\n");
-	}
 
-    free(A);
-    free(B);
-    free(C);
-    free(D);
-    free(R);
-    free(CD);
-    free(AB);
-    free(D2);
+    if(rank == COORDINATOR){
+        free(A);
+        free(B);
+        free(C);
+        free(D);
+        free(R);
+        free(resultados);
+        free(D2);
+    }else{
+        free(A);
+        free(B);
+        free(C);
+        free(R);
+        free(AB);
+        free(CD);
+        free(D2);
+    }
+    MPI_Finalize();
     return 0;
+}
 
+static inline void encontrar_valores(double *A, double *B, int stripSize,double *mins,double *maxs,double *sumas){
+   int i;
+   for(i=0;i<stripSize;i++){
+      if(A[i] > maxs[0]) 
+            maxs[0] = A[i];
+        if(A[i] < mins[0]) 
+            mins[0] = A[i];
+        sumas[0] += A[i];
+   }
+   for(i=0;i<stripSize;i++){
+      if(B[i] > maxs[1]) 
+            maxs[1] = B[i];
+        if(B[i] < mins[1]) 
+            mins[1] = B[i];
+        sumas[1] += B[i];
+   }
 }
 
 static inline void mult_matrices(double *A, double *B, double *C, int stripSize,int tam_bloque, int N){
@@ -173,20 +233,27 @@ static inline void mult_bloques(double *ablk, double *bblk, double *cblk, int ta
     }
 }
 
-static inline void potencia_D(int *D,double *D2,int stripSize,double *resultados){
+static inline void potencia_D(int *D, double *D2, int stripSize, int N, double *resultados){
     int i,j;
     for(i=0;i<stripSize;i++){
         for(j=0;j<N;j++){
             int valor = D[j*N+i];
             double v = resultados[valor];
-            D2[j*N+i] = v; //ordenado por columna
+            D2[j*N+i] = v;
         }
     }
 }
 
-static inline void sumar_matrices(double *AB, double *CD, double *R, int stripSize, int N){
+static inline void sumar_AB_CD(double *AB, double *CD, double *R, int stripSize, int N){
 	int i;
 	for(i=0;i<stripSize*N;i++){
 		R[i]=AB[i]+CD[i];
+	}
+}
+
+static inline void multiplicacion_ABxRP(double *AB,double RP, int stripSize, int N){
+    int i;
+	for(i=0;i<stripSize*N;i++){
+		AB[i]=AB[i]*RP;
 	}
 }
