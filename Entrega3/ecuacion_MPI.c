@@ -192,7 +192,7 @@ static inline void encontrar_valoresA(double *A, int N, int stripSize ,double *m
     for(i=0;i<stripSize*N;i++){
         if(A[i] > maxs[0]) 
             maxs[0] = A[i];
-        if(A[i] < mins[0]) 
+        else if(A[i] < mins[0]) 
             mins[0] = A[i];
         sumas[0] += A[i];
     }
@@ -208,7 +208,7 @@ static inline void encontrar_valoresB(double *B, int N, int rank, int cantProces
             int pos=j*N+i;
             if(B[pos] > maxs[1]) 
                 maxs[1] = B[pos];
-            if(B[pos] < mins[1]) 
+            else if(B[pos] < mins[1]) 
                 mins[1] = B[pos];
             sumas[1] += B[pos];
         }
