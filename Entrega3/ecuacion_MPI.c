@@ -4,7 +4,7 @@
 #include <time.h>
 #define COORDINATOR 0
 
-static inline void encontrar_valores(double *A, double *B, int stripSize,double *mins,double *maxs,double *sumas);
+static inline void encontrar_valores(double *A, double *B, int stripSize, int N, double *mins,double *maxs,double *sumas);
 static inline void mult_matrices(double *A, double *B, double *C, int stripSize, int tam_bloque, int N);
 static inline void mult_bloques(double *ablk, double *bblk, double *cblk, int tam_bloque, int N);
 static inline void potencia_D(int *D, double *D2, int stripSize, int N,double *resultados);
@@ -25,11 +25,12 @@ int main(int argc, char* argv[]){
 	    printf("Param1: tamanio matriz - Param2: tamanio bloque: \n");
 		exit(1);
 	}
+    N=atoi(argv[1]);
 	tam_bloque=atoi(argv[2]);
 	MPI_Comm_size(MPI_COMM_WORLD,&cantProcesos);
 	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
-	if (N % cantProcesos != 0) {
+	if (N % cantProcesos != 0){
 		printf("El tamanio de la matriz debe ser multiplo del numero de procesos.\n");
 		exit(1);
 	}
@@ -74,11 +75,12 @@ int main(int argc, char* argv[]){
 		A = (double*) malloc(sizeof(double)*N*stripSize);
 		C = (double*) malloc(sizeof(double)*N*stripSize);
         R = (double*) malloc(sizeof(double)*N*stripSize);
-        AB = (double*) malloc(sizeof(double)*N*stripSize); 
-        CD = (double*) malloc(sizeof(double)*N*stripSize);
 	}
     B = (double*) malloc(sizeof(double)*N*N);
     D2 = (double*) malloc(sizeof(double)*N*N); 
+    AB = (double*) malloc(sizeof(double)*N*N); 
+    CD = (double*) malloc(sizeof(double)*N*N);
+
 
     //Inicializar datos
 	if(rank == COORDINATOR){
@@ -92,15 +94,13 @@ int main(int argc, char* argv[]){
         }
 	}
 
+    //Espero a que el coordinador inicialice
+    MPI_Barrier(MPI_COMM_WORLD);
+
     //Pos 0 -> min, max y suma de A
     //Pos 1 -> min, max y suma de B
     double mins[2],maxs[2],sumas[2];
     double minsR[2],maxsR[2],sumasR[2];
-    mins[0]=A[0]; maxs[0]=A[0]; sumas[0]=0;
-    mins[1]=B[0]; maxs[1]=B[0]; sumas[1]=0;
-
-    //Espero a que el coordinador inicialice
-    MPI_Barrier(MPI_COMM_WORLD);
 
     commTimes[0] = MPI_Wtime();
 
@@ -108,11 +108,10 @@ int main(int argc, char* argv[]){
         for(i=1;i<=40;i++){ //Lo realiza solo el Coordinador
             resultados[i]= i*i;
         }
-        potencia_D(D,D2,stripSize,N,resultados);
+        potencia_D(D,D2,stripSize,N,resultados); 
     }
 
     commTimes[1] = MPI_Wtime();
-    printf("CommTimes0: %f, commTimes1: %f \n",commTimes[0],commTimes[1]);
 
     //Distribuyo los datos
 	MPI_Scatter(A,stripSize*N,MPI_DOUBLE,A,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
@@ -122,19 +121,32 @@ int main(int argc, char* argv[]){
 
     commTimes[2] = MPI_Wtime();
 
-    encontrar_valores(A,B,stripSize,mins,maxs,sumas);
-    
+    //Debo inicializar aca -> porque ya recibi las matrices    
+    mins[0]=A[0]; maxs[0]=A[0]; sumas[0]=0;
+    mins[1]=B[0]; maxs[1]=B[0]; sumas[1]=0;
+    encontrar_valores(A,B,stripSize,N,mins,maxs,sumas);
+
     commTimes[3] = MPI_Wtime();
 
     MPI_Allreduce(mins,minsR,2,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
     MPI_Allreduce(maxs,maxsR,2,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
     MPI_Allreduce(sumas,sumasR,2,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 
+    if(rank==COORDINATOR){
+        printf("minA=%f, maxA=%f, sumaA=%f \n",minsR[0],maxsR[0],sumasR[0]);
+        printf("minB=%f, maxB=%f, sumaB=%f \n",minsR[1],maxsR[1],sumasR[1]);
+    }
+
     commTimes[4] = MPI_Wtime();
 
     promedioA=sumasR[0]/N;
     promedioB=sumasR[1]/N;
     RP = ((maxsR[0] * maxsR[1] - minsR[0] * minsR[1]) / (promedioA * promedioB));
+    
+/*     if(rank==COORDINATOR){
+        printf("promedioA=%f, promedioB=%f, RP=%f \n",promedioA,promedioB,RP); 
+    } */
+
     mult_matrices(A,B,AB,stripSize,tam_bloque,N);
     mult_matrices(C,D2,CD,stripSize,tam_bloque,N);
     multiplicacion_ABxRP(AB,RP,stripSize,N);
@@ -143,14 +155,13 @@ int main(int argc, char* argv[]){
     commTimes[5] = MPI_Wtime();
 
     MPI_Gather(R,stripSize*N,MPI_DOUBLE,R,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-    
+
     commTimes[6] = MPI_Wtime();
 
     MPI_Reduce(commTimes, minCommTimes, 7, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
 	MPI_Reduce(commTimes, maxCommTimes, 7, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
-	
 
-    if(rank==COORDINATOR) {
+    if(rank==COORDINATOR) { 
 		for(i=0;i<N;i++){
 			for(j=0;j<N;j++){
 				check=check&&(R[i*N+j]==N);
@@ -161,9 +172,9 @@ int main(int argc, char* argv[]){
         }else{
             printf("Multiplicacion de matrices resultado erroneo\n");
         }
-        totalTime = maxCommTimes[6] - minCommTimes[0];
+        totalTime = (maxCommTimes[6] - minCommTimes[0]);
 	    commTime = (maxCommTimes[2] - minCommTimes[1]) + (maxCommTimes[4] - minCommTimes[3]) + (maxCommTimes[6] - minCommTimes[5]);
-        printf("Tiempo total=%lf, Tiempo comunicacion=%lf, Tiempo computo=%lf\n",totalTime,commTime,totalTime-commTime);
+        printf("Tiempo total=%f, Tiempo comunicacion=%f, Tiempo computo=%f\n",totalTime,commTime,totalTime-commTime);
     }
 
     if(rank == COORDINATOR){
@@ -187,22 +198,24 @@ int main(int argc, char* argv[]){
     return 0;
 }
 
-static inline void encontrar_valores(double *A, double *B, int stripSize,double *mins,double *maxs,double *sumas){
-   int i;
-   for(i=0;i<stripSize;i++){
-      if(A[i] > maxs[0]) 
+static inline void encontrar_valores(double *A, double *B, int stripSize, int N,double *mins,double *maxs,double *sumas){
+    int i,j;
+    for(i=0;i<stripSize*N;i++){
+        if(A[i] > maxs[0]) 
             maxs[0] = A[i];
         if(A[i] < mins[0]) 
             mins[0] = A[i];
         sumas[0] += A[i];
-   }
-   for(i=0;i<stripSize;i++){
-      if(B[i] > maxs[1]) 
-            maxs[1] = B[i];
-        if(B[i] < mins[1]) 
-            mins[1] = B[i];
-        sumas[1] += B[i];
-   }
+    }
+    for(i=0;i<stripSize;i++){
+        for(j=0;j<N;j++){
+            if(B[i] > maxs[1]) 
+                maxs[1] = B[i];
+            if(B[i] < mins[1]) 
+                mins[1] = B[i];
+            sumas[1] += B[i];
+        }
+    }
 }
 
 static inline void mult_matrices(double *A, double *B, double *C, int stripSize,int tam_bloque, int N){
@@ -235,7 +248,7 @@ static inline void mult_bloques(double *ablk, double *bblk, double *cblk, int ta
 
 static inline void potencia_D(int *D, double *D2, int stripSize, int N, double *resultados){
     int i,j;
-    for(i=0;i<stripSize;i++){
+    for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             int valor = D[j*N+i];
             double v = resultados[valor];
