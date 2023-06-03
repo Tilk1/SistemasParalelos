@@ -4,7 +4,8 @@
 #include <time.h>
 #define COORDINATOR 0
 
-static inline void encontrar_valores(double *A, double *B, int stripSize, int N, double *mins,double *maxs,double *sumas);
+static inline void encontrar_valoresA(double *A, int N, int stripSize ,double *mins,double *maxs,double *sumas);
+static inline void encontrar_valoresB(double *B, int N, int rank, int cantProcesos,double *mins,double *maxs,double *sumas);
 static inline void mult_matrices(double *A, double *B, double *C, int stripSize, int tam_bloque, int N);
 static inline void mult_bloques(double *ablk, double *bblk, double *cblk, int tam_bloque, int N);
 static inline void potencia_D(int *D, double *D2, int stripSize, int N,double *resultados);
@@ -29,11 +30,6 @@ int main(int argc, char* argv[]){
 	tam_bloque=atoi(argv[2]);
 	MPI_Comm_size(MPI_COMM_WORLD,&cantProcesos);
 	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-
-	if (N % cantProcesos != 0){
-		printf("El tamanio de la matriz debe ser multiplo del numero de procesos.\n");
-		exit(1);
-	}
 
     /*  PASOS
     1)  MinA = mínimo de A
@@ -78,8 +74,8 @@ int main(int argc, char* argv[]){
 	}
     B = (double*) malloc(sizeof(double)*N*N);
     D2 = (double*) malloc(sizeof(double)*N*N); 
-    AB = (double*) malloc(sizeof(double)*N*N); 
-    CD = (double*) malloc(sizeof(double)*N*N);
+    AB = (double*) malloc(sizeof(double)*N*stripSize); 
+    CD = (double*) malloc(sizeof(double)*N*stripSize);
 
 
     //Inicializar datos
@@ -89,7 +85,7 @@ int main(int argc, char* argv[]){
 				A[i*N+j]=1;
                 B[j*N+i]=1;
                 C[i*N+j]=1;
-                D[j*N+i]=1;
+                D[j*N+i]=1; //Para que tenga un valor aleatorio poner: rand()%40+1;
             }
         }
 	}
@@ -124,7 +120,9 @@ int main(int argc, char* argv[]){
     //Debo inicializar aca -> porque ya recibi las matrices    
     mins[0]=A[0]; maxs[0]=A[0]; sumas[0]=0;
     mins[1]=B[0]; maxs[1]=B[0]; sumas[1]=0;
-    encontrar_valores(A,B,stripSize,N,mins,maxs,sumas);
+
+    encontrar_valoresA(A,N,stripSize,mins,maxs,sumas);
+    encontrar_valoresB(B,N,rank,cantProcesos,mins,maxs,sumas);
 
     commTimes[3] = MPI_Wtime();
 
@@ -132,20 +130,11 @@ int main(int argc, char* argv[]){
     MPI_Allreduce(maxs,maxsR,2,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
     MPI_Allreduce(sumas,sumasR,2,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 
-    if(rank==COORDINATOR){
-        printf("minA=%f, maxA=%f, sumaA=%f \n",minsR[0],maxsR[0],sumasR[0]);
-        printf("minB=%f, maxB=%f, sumaB=%f \n",minsR[1],maxsR[1],sumasR[1]);
-    }
-
     commTimes[4] = MPI_Wtime();
 
-    promedioA=sumasR[0]/N;
-    promedioB=sumasR[1]/N;
+    promedioA=sumasR[0]/(N*N);
+    promedioB=sumasR[1]/(N*N);
     RP = ((maxsR[0] * maxsR[1] - minsR[0] * minsR[1]) / (promedioA * promedioB));
-    
-/*     if(rank==COORDINATOR){
-        printf("promedioA=%f, promedioB=%f, RP=%f \n",promedioA,promedioB,RP); 
-    } */
 
     mult_matrices(A,B,AB,stripSize,tam_bloque,N);
     mult_matrices(C,D2,CD,stripSize,tam_bloque,N);
@@ -198,8 +187,8 @@ int main(int argc, char* argv[]){
     return 0;
 }
 
-static inline void encontrar_valores(double *A, double *B, int stripSize, int N,double *mins,double *maxs,double *sumas){
-    int i,j;
+static inline void encontrar_valoresA(double *A, int N, int stripSize ,double *mins,double *maxs,double *sumas){
+    int i;
     for(i=0;i<stripSize*N;i++){
         if(A[i] > maxs[0]) 
             maxs[0] = A[i];
@@ -207,13 +196,21 @@ static inline void encontrar_valores(double *A, double *B, int stripSize, int N,
             mins[0] = A[i];
         sumas[0] += A[i];
     }
-    for(i=0;i<stripSize;i++){
+}
+
+static inline void encontrar_valoresB(double *B, int N, int rank, int cantProcesos,double *mins,double *maxs,double *sumas){
+    int i,j;
+    int primera=rank*(N/cantProcesos);
+    int ultima=primera+(N/cantProcesos)-1;
+
+    for(i=primera;i<=ultima;i++){
         for(j=0;j<N;j++){
-            if(B[i] > maxs[1]) 
-                maxs[1] = B[i];
-            if(B[i] < mins[1]) 
-                mins[1] = B[i];
-            sumas[1] += B[i];
+            int pos=j*N+i;
+            if(B[pos] > maxs[1]) 
+                maxs[1] = B[pos];
+            if(B[pos] < mins[1]) 
+                mins[1] = B[pos];
+            sumas[1] += B[pos];
         }
     }
 }
