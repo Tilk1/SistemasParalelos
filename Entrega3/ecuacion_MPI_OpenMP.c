@@ -5,17 +5,12 @@
 #include <time.h>
 #define COORDINATOR 0
 
-static inline void encontrar_valoresA(double *A, int N, int stripSize ,double *mins,double *maxs,double *sumas);
-static inline void encontrar_valoresB(double *B, int N, int rank, int cantProcesos,double *mins,double *maxs,double *sumas);
-static inline void mult_matrices(double *A, double *B, double *C, int stripSize, int tam_bloque, int N);
 static inline void mult_bloques(double *ablk, double *bblk, double *cblk, int tam_bloque, int N);
 static inline void potencia_D(int *D, double *D2, int stripSize, int N,double *resultados);
-static inline void sumar_AB_CD(double *AB, double *CD, double *R, int stripSize, int N);
-static inline void multiplicacion_ABxRP(double *AB,double RP, int stripSize, int N);
 
 int main(int argc, char* argv[]){
 	int i,j,k,cantProcesos,rank,N,stripSize,tam_bloque,check=1,nivel_provisto, cantThreads;
-    double promedioA, promedioB,RP;
+    double promedioA, promedioB, RP,maxA,minA,sumaA,maxB,minB,sumaB;
 	double *A,*B,*C,*D2,*CD,*AB,*R,*resultados;
     int *D;
 	MPI_Status status;
@@ -75,45 +70,61 @@ int main(int argc, char* argv[]){
     //Pos 1 -> min, max y suma de B
     double mins[2],maxs[2],sumas[2];
     double minsR[2],maxsR[2],sumasR[2];
+    sumaA = 0; sumaB = 0;
+
+    commTimes[0] = MPI_Wtime();
+
+    if(rank==COORDINATOR){
+        for(i=1;i<=40;i++){ //Lo realiza solo el Coordinador
+            resultados[i]= i*i;
+        }
+        potencia_D(D,D2,stripSize,N,resultados);
+    }
+    
+    commTimes[1] = MPI_Wtime();
+        
+    //Distribuyo los datos
+    MPI_Scatter(A,stripSize*N,MPI_DOUBLE,A,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+    MPI_Scatter(C,stripSize*N,MPI_DOUBLE,C,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+    MPI_Bcast(B,N*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+    MPI_Bcast(D2,N*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+
+    maxA=A[0];
+    minA=A[0];
+    maxB=B[0];
+    minB=B[0];
+
+    commTimes[2] = MPI_Wtime();
+
+    int primera=rank*stripSize;
+    int ultima=primera+stripSize;
 
     //Empieza region paralela 
     #pragma omp parallel shared(A,B,C,D,D2,AB,CD,R) 
     {
 
-        #pragma omp single
-        {
-            commTimes[0] = MPI_Wtime();
-
-            if(rank=COORDINATOR){
-                for(i=1;i<=40;i++){ //Lo realiza solo el Coordinador
-                    resultados[i]= i*i;
-                }
-                potencia_D(D,D2,stripSize,N,resultados); 
-            }
-
-            commTimes[1] = MPI_Wtime();
-                
-            //Distribuyo los datos
-            MPI_Scatter(A,stripSize*N,MPI_DOUBLE,A,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-            MPI_Scatter(C,stripSize*N,MPI_DOUBLE,C,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-            MPI_Bcast(B,N*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-            MPI_Bcast(D2,N*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-
-            commTimes[2] = MPI_Wtime();
-
+        //1) Buscar max,min y suma de A y B
+        #pragma omp for reduction(+:sumaA) reduction(min:minA) reduction(max:maxA) schedule(static)
+        for(i=0;i<stripSize*N;i++){
+            sumaA+=A[i];
+            if(A[i]>maxA) maxA=A[i]; 
+            else if(A[i]<minA) minA=A[i];
         }
 
-
-        //Debo inicializar aca -> porque ya recibi las matrices    
-        mins[0]=A[0]; maxs[0]=A[0]; sumas[0]=0;
-        mins[1]=B[0]; maxs[1]=B[0]; sumas[1]=0;
-
-        encontrar_valoresA(A,N,stripSize,mins,maxs,sumas);
-        encontrar_valoresB(B,N,rank,cantProcesos,mins,maxs,sumas);
-
+        #pragma omp for reduction(+:sumaB) reduction(min:minB) reduction(max:maxB) schedule(static)
+        for(i=primera;i<ultima;i++){
+            for(j=0;j<N;j++){
+                sumaB+=B[i*N+j];
+                if(B[i*N+j]>maxB) maxB=B[i*N+j]; 
+                else if(B[i*N+j]<minB) minB=B[i*N+j];
+            }
+        }
 
         #pragma omp single
         {
+            mins[0]=minA; maxs[0]=maxA; sumas[0]=sumaA;
+            mins[1]=minB; maxs[1]=maxB; sumas[1]=sumaB;
+
             commTimes[3] = MPI_Wtime();
 
             MPI_Allreduce(mins,minsR,2,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
@@ -122,32 +133,72 @@ int main(int argc, char* argv[]){
 
             commTimes[4] = MPI_Wtime();
 
+            if(rank==COORDINATOR){
+                printf("minA=%f, maxA=%f, sumaA=%f \n",minsR[0],maxsR[0],sumasR[0]);
+                printf("minB=%f, maxB=%f, sumaB=%f \n",minsR[1],maxsR[1],sumasR[1]);
+            }
+
             promedioA=sumasR[0]/(N*N);
             promedioB=sumasR[1]/(N*N);
             RP = ((maxsR[0] * maxsR[1] - minsR[0] * minsR[1]) / (promedioA * promedioB));
         }
 
-        mult_matrices(A,B,AB,stripSize,tam_bloque,N);
-        mult_matrices(C,D2,CD,stripSize,tam_bloque,N);
-        multiplicacion_ABxRP(AB,RP,stripSize,N);
-        sumar_AB_CD(AB,CD,R,stripSize,N);
-
-        #pragma omp single
-        {
-            
-            commTimes[5] = MPI_Wtime();
-
-            MPI_Gather(R,stripSize*N,MPI_DOUBLE,R,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-        
-            commTimes[6] = MPI_Wtime();
-
+        //3) AB = A x B
+        #pragma omp for nowait schedule(static)
+        for(i=0;i<stripSize;i+=tam_bloque){
+            int valori=i*N;
+            for(j=0;j<N;j+=tam_bloque){
+                int valorj=j*N;
+                for(k=0;k<N;k+=tam_bloque){
+                    mult_bloques(&A[valori+k], &B[valorj+k], &AB[valori+j],tam_bloque,N);
+                }
+            }  
         }
+
+        //5) CD = C x D2
+        #pragma omp for nowait schedule(static)
+        for(i=0;i<stripSize;i+=tam_bloque){
+            int valori=i*N;
+            for(j=0;j<N;j+=tam_bloque){
+                int valorj=j*N;
+                for(k=0;k<N;k+=tam_bloque){
+                    mult_bloques(&C[valori+k], &D2[valorj+k], &CD[valori+j],tam_bloque,N);
+                }
+            }  
+        }
+
+
+        //6) AB = AB * RP
+        #pragma omp for nowait schedule(static)
+        for (i=0;i<stripSize*N;i++) {
+            AB[i] = AB[i]*RP;
+        }
+
+        //7) R = AB + CD
+        #pragma omp for nowait schedule(static)
+        for (i=0;i<stripSize*N;i++) {
+            R[i] = AB[i] + CD[i];
+        }
+        
     }
+        
+    commTimes[5] = MPI_Wtime();
+
+    MPI_Gather(R,stripSize*N,MPI_DOUBLE,R,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+
+    commTimes[6] = MPI_Wtime();
     
     MPI_Reduce(commTimes, minCommTimes, 7, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
     MPI_Reduce(commTimes, maxCommTimes, 7, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
 
-    if(rank==COORDINATOR){ 
+    if(rank==COORDINATOR){
+        printf("imprimo R \n");
+        for(i=0;i<8;i++){
+            for(j=0;j<8;j++){
+            printf(" [%i][%i]= %0.0f ",i,j,R[i*N+j]);
+        }
+            printf("\n");
+        }
 		for(i=0;i<N;i++){
 			for(j=0;j<N;j++){
 				check=check&&(R[i*N+j]==N);
@@ -184,49 +235,6 @@ int main(int argc, char* argv[]){
     return 0;
 }
 
-static inline void encontrar_valoresA(double *A, int N, int stripSize ,double *mins,double *maxs,double *sumas){
-    int i;
-    #pragma omp for nowait reduction(+:sumas[0]) reduction(min:mins[0]) reduction(max:maxs[0]) schedule(static)
-    for(i=0;i<stripSize*N;i++){
-        if(A[i] > maxs[0]) 
-            maxs[0] = A[i];
-        else if(A[i] < mins[0]) 
-            mins[0] = A[i];
-        sumas[0] += A[i];
-    }
-}
-
-static inline void encontrar_valoresB(double *B, int N, int rank, int cantProcesos,double *mins,double *maxs,double *sumas){
-    int i,j;
-    int primera=rank*(N/cantProcesos);
-    int ultima=primera+(N/cantProcesos)-1;
-    #pragma omp for nowait reduction(+:sumas[1]) reduction(min:mins[1]) reduction(max:maxs[1]) schedule(static)
-    for(i=primera;i<=ultima;i++){
-        for(j=0;j<N;j++){
-            int pos=j*N+i;
-            if(B[pos] > maxs[1]) 
-                maxs[1] = B[pos];
-            else if(B[pos] < mins[1]) 
-                mins[1] = B[pos];
-            sumas[1] += B[pos];
-        }
-    }
-}
-
-static inline void mult_matrices(double *A, double *B, double *C, int stripSize,int tam_bloque, int N){
-    int i,j,k;
-    #pragma omp for nowait schedule(static)
-	for (i=0;i<stripSize;i+=tam_bloque){
-		int valori=i*N;
-		for (j=0;j<N;j+=tam_bloque){
-		    int valorj=j*N;
-			for (k=0;k<N;k+=tam_bloque) { 
-                mult_bloques(&A[valori+k], &B[valorj+k], &C[valori+j],tam_bloque,N);
-			}
-		}
-	}
-}
-
 static inline void mult_bloques(double *ablk, double *bblk, double *cblk, int tam_bloque, int N){
     int i,j,k; 
     for(i=0;i<tam_bloque;i++){
@@ -244,7 +252,6 @@ static inline void mult_bloques(double *ablk, double *bblk, double *cblk, int ta
 
 static inline void potencia_D(int *D, double *D2, int stripSize, int N, double *resultados){
     int i,j;
-    #pragma omp for nowait schedule(static)
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
             int valor = D[j*N+i];
@@ -252,20 +259,4 @@ static inline void potencia_D(int *D, double *D2, int stripSize, int N, double *
             D2[j*N+i] = v;
         }
     }
-}
-
-static inline void sumar_AB_CD(double *AB, double *CD, double *R, int stripSize, int N){
-	int i;
-    #pragma omp for nowait schedule(static)
-	for(i=0;i<stripSize*N;i++){
-		R[i]=AB[i]+CD[i];
-	}
-}
-
-static inline void multiplicacion_ABxRP(double *AB,double RP, int stripSize, int N){
-    int i;
-    #pragma omp for nowait schedule(static)
-	for(i=0;i<stripSize*N;i++){
-		AB[i]=AB[i]*RP;
-	}
 }
