@@ -14,7 +14,7 @@ static inline void sumar_AB_CD(double *AB, double *CD, double *R, int stripSize,
 static inline void multiplicacion_ABxRP(double *AB,double RP, int stripSize, int N);
 
 int main(int argc, char* argv[]){
-	int i,j,k,cantProcesos,rank,N,stripSize,tam_bloque,check=1,nivel_provisto;
+	int i,j,k,cantProcesos,rank,N,stripSize,tam_bloque,check=1,nivel_provisto, cantThreads;
     double promedioA, promedioB,RP;
 	double *A,*B,*C,*D2,*CD,*AB,*R,*resultados;
     int *D;
@@ -23,12 +23,14 @@ int main(int argc, char* argv[]){
 
     MPI_Init_thread(&argc,&argv,MPI_THREAD_MULTIPLE,&nivel_provisto);
 
-    if(argc != 3){
-	    printf("Param1: tamanio matriz - Param2: tamanio bloque: \n");
+    if(argc != 4){
+	    printf("Param1: tamanio matriz - Param2: tamanio bloque - Param3: cantidad threads \n");
 		exit(1);
 	}
     N=atoi(argv[1]);
 	tam_bloque=atoi(argv[2]);
+    cantThreads=atoi(argv[3]);
+    omp_set_num_threads(cantThreads);
 	MPI_Comm_size(MPI_COMM_WORLD,&cantProcesos);
 	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
@@ -68,72 +70,84 @@ int main(int argc, char* argv[]){
 
     //Espero a que el coordinador inicialice
     MPI_Barrier(MPI_COMM_WORLD);
+    
     //Pos 0 -> min, max y suma de A
     //Pos 1 -> min, max y suma de B
     double mins[2],maxs[2],sumas[2];
     double minsR[2],maxsR[2],sumasR[2];
 
+    //Empieza region paralela 
     #pragma omp parallel shared(A,B,C,D,D2,AB,CD,R) 
-    {}
-    commTimes[0] = MPI_Wtime();
+    {
 
-    if(rank==COORDINATOR){
-        for(i=1;i<=40;i++){ //Lo realiza solo el Coordinador
-            resultados[i]= i*i;
+        #pragma omp single
+        {
+            commTimes[0] = MPI_Wtime();
+
+            if(rank=COORDINATOR){
+                for(i=1;i<=40;i++){ //Lo realiza solo el Coordinador
+                    resultados[i]= i*i;
+                }
+                potencia_D(D,D2,stripSize,N,resultados); 
+            }
+
+            commTimes[1] = MPI_Wtime();
+                
+            //Distribuyo los datos
+            MPI_Scatter(A,stripSize*N,MPI_DOUBLE,A,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+            MPI_Scatter(C,stripSize*N,MPI_DOUBLE,C,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+            MPI_Bcast(B,N*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+            MPI_Bcast(D2,N*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+
+            commTimes[2] = MPI_Wtime();
+
         }
-        potencia_D(D,D2,stripSize,N,resultados); 
+
+
+        //Debo inicializar aca -> porque ya recibi las matrices    
+        mins[0]=A[0]; maxs[0]=A[0]; sumas[0]=0;
+        mins[1]=B[0]; maxs[1]=B[0]; sumas[1]=0;
+
+        encontrar_valoresA(A,N,stripSize,mins,maxs,sumas);
+        encontrar_valoresB(B,N,rank,cantProcesos,mins,maxs,sumas);
+
+
+        #pragma omp single
+        {
+            commTimes[3] = MPI_Wtime();
+
+            MPI_Allreduce(mins,minsR,2,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+            MPI_Allreduce(maxs,maxsR,2,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+            MPI_Allreduce(sumas,sumasR,2,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+
+            commTimes[4] = MPI_Wtime();
+
+            promedioA=sumasR[0]/(N*N);
+            promedioB=sumasR[1]/(N*N);
+            RP = ((maxsR[0] * maxsR[1] - minsR[0] * minsR[1]) / (promedioA * promedioB));
+        }
+
+        mult_matrices(A,B,AB,stripSize,tam_bloque,N);
+        mult_matrices(C,D2,CD,stripSize,tam_bloque,N);
+        multiplicacion_ABxRP(AB,RP,stripSize,N);
+        sumar_AB_CD(AB,CD,R,stripSize,N);
+
+        #pragma omp single
+        {
+            
+            commTimes[5] = MPI_Wtime();
+
+            MPI_Gather(R,stripSize*N,MPI_DOUBLE,R,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
+        
+            commTimes[6] = MPI_Wtime();
+
+        }
     }
-
-    commTimes[1] = MPI_Wtime();
-
-    //Distribuyo los datos
-	MPI_Scatter(A,stripSize*N,MPI_DOUBLE,A,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-    MPI_Scatter(C,stripSize*N,MPI_DOUBLE,C,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-	MPI_Bcast(B,N*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-    MPI_Bcast(D2,N*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-
-    commTimes[2] = MPI_Wtime();
-
-    //Debo inicializar aca -> porque ya recibi las matrices    
-    mins[0]=A[0]; maxs[0]=A[0]; sumas[0]=0;
-    mins[1]=B[0]; maxs[1]=B[0]; sumas[1]=0;
-
-    encontrar_valoresA(A,N,stripSize,mins,maxs,sumas);
-    encontrar_valoresB(B,N,rank,cantProcesos,mins,maxs,sumas);
-
-    commTimes[3] = MPI_Wtime();
-
-    #pragma omp single
-    {
-        MPI_Allreduce(mins,minsR,2,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
-        MPI_Allreduce(maxs,maxsR,2,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
-        MPI_Allreduce(sumas,sumasR,2,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-    }
-
-    commTimes[4] = MPI_Wtime();
-
-    #pragma omp single
-    {
-        promedioA=sumasR[0]/(N*N);
-        promedioB=sumasR[1]/(N*N);
-        RP = ((maxsR[0] * maxsR[1] - minsR[0] * minsR[1]) / (promedioA * promedioB));
-    }
-
-    mult_matrices(A,B,AB,stripSize,tam_bloque,N);
-    mult_matrices(C,D2,CD,stripSize,tam_bloque,N);
-    multiplicacion_ABxRP(AB,RP,stripSize,N);
-    sumar_AB_CD(AB,CD,R,stripSize,N);
-
-    commTimes[5] = MPI_Wtime();
-
-    MPI_Gather(R,stripSize*N,MPI_DOUBLE,R,stripSize*N,MPI_DOUBLE,COORDINATOR,MPI_COMM_WORLD);
-
-    commTimes[6] = MPI_Wtime();
-
+    
     MPI_Reduce(commTimes, minCommTimes, 7, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(commTimes, maxCommTimes, 7, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
+    MPI_Reduce(commTimes, maxCommTimes, 7, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
 
-    if(rank==COORDINATOR) { 
+    if(rank==COORDINATOR){ 
 		for(i=0;i<N;i++){
 			for(j=0;j<N;j++){
 				check=check&&(R[i*N+j]==N);
