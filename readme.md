@@ -1,5 +1,7 @@
-# En este repositorio se plantean problemas de procesamiento paralelo desde dos puntos de vista: la arquitectura física y los
-# lenguajes de programación, poniendo énfasis en la transformación de algoritmos secuenciales en paralelos.
+# Sistemas paralelos
+
+En este repositorio se plantean problemas de procesamiento paralelo desde dos puntos de vista: la arquitectura física y los
+lenguajes de programación, poniendo énfasis en la transformación de algoritmos secuenciales en paralelos.
 
 Tambien se estudian las métricas de performance asociadas al paralelismo
 
