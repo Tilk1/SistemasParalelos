@@ -6,5 +6,6 @@ lenguajes de programación, poniendo énfasis en la transformación de algoritmo
 Tambien se estudian las métricas de performance asociadas al paralelismo
 
 ###### (Capturas de algunas partes del trabajo)
-![image](https://github.com/Tilk1/SistemasParalelos/assets/24284918/ff5618d2-6271-4066-b63d-9712a4f56ea0)
+![image](https://github.com/Tilk1/SistemasParalelos/assets/24284918/a30f3195-0d09-428b-8180-2545e530f1b7)
+
 
